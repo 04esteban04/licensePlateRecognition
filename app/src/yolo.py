@@ -2,7 +2,9 @@ import shutil
 import os
 from pathlib import Path
 from ultralytics import YOLO
-
+import torch
+import yaml
+#import kagglehub
 
 def cleanDirectories(dirs=["outputs"]):
     """
@@ -28,17 +30,64 @@ def loadModel(model_name="yolo11n.pt", save_dir="outputs/models"):
 
     # Move the original weights into outputs/
     dst = Path(save_dir) / Path(model_name).name
-    shutil.move(model_name, dst)
-    print(f"Model weights moved to: {dst}")
+    
+    if Path(model_name).exists():
+        shutil.move(model_name, dst)
+        print(f"Model weights moved to: {dst}")
 
     return model
 
 
-def trainModel(model, data="coco8.yaml", epochs=100, imgsz=640, device="cpu", project="outputs", name="train"):
+
+
+# Download latest version
+#kaggle_path = kagglehub.dataset_download("sujaymann/car-number-plate-dataset-yolo-format")
+#kaggle_path = Path(kaggle_path)
+
+def prepare_yolo_dataset(local_path="dataset/License-Plate-Data"):
+    """
+    Use a local YOLO-format dataset and return its data.yaml path as string.
+    """
+    dataset_path = Path(local_path).expanduser().resolve()
+    if not dataset_path.exists():
+        raise FileNotFoundError(f"Dataset folder not found: {dataset_path}")
+
+    # Look for data.yaml file
+    yaml_files = list(dataset_path.rglob("data.yaml"))
+    if not yaml_files:
+        raise FileNotFoundError(f"data.yaml not found in {dataset_path}")
+
+    data_yaml = yaml_files[0]
+    print(f"Dataset ready at: {data_yaml}")
+
+    # Load and modify data.yaml
+    with open(data_yaml, "r") as f:
+        data = yaml.safe_load(f)
+
+    # Update paths to be absolute
+    data["train"] = str((dataset_path / "train").resolve())
+    data["val"] = str((dataset_path / "test").resolve())
+
+    # Save updated data.yaml
+    with open(data_yaml, "w") as f:
+        yaml.dump(data, f)
+    
+    return str(data_yaml), data
+
+
+
+
+def trainModel(model, data, epochs=100, imgsz=640, device=None, project="outputs", name="train", workers=2):
     """
     Train YOLO model with given parameters.
     """
    
+    
+    if device is None:
+        device = "0" if torch.cuda.is_available() else "cpu"
+        print(f"Training on: {'GPU' if device != 'cpu' else 'CPU'}")
+   
+
     return model.train(
         data = data,
         epochs = epochs,
@@ -46,14 +95,16 @@ def trainModel(model, data="coco8.yaml", epochs=100, imgsz=640, device="cpu", pr
         device = device,
         project = project,
         name = name,
+        workers=workers
     )
 
 
-def evaluateModel(model, project="outputs", name="val"):
+def evaluateModel(model, data, project="outputs", name="val"):
     """
     Evaluate the model on validation set.
+    :param data: path to your data.yaml
     """
-    return model.val(project=project, name=name)
+    return model.val(data=data, project=project, name=name)
 
 
 def predictImage(model, image_url, show=True, project="outputs", name="predict"):
@@ -81,21 +132,30 @@ def exportModel(model, export_format="onnx", project="outputs", name="export"):
 
 if __name__ == "__main__":
     # Clean old directories before running
-    cleanDirectories()
+    #cleanDirectories()
 
     # Load model
     model = loadModel()
     
-    # Train model
-    trainResults = trainModel(model, epochs=10)
+    # Prepare dataset
+    data_yaml, data_dict  = prepare_yolo_dataset("dataset/License-Plate-Data")
+ 
+    #Update model classes to match dataset
+    model.model.names = data_dict["names"]
+    model.model.nc = data_dict["nc"]
+    print(f"Model classes set: {model.model.names}, nc={model.model.nc}")
 
+    # Train model
+    trainResults = trainModel(model, data=data_yaml, epochs=10, imgsz=640)
+    
     # Evaluate model
-    metrics = evaluateModel(model)
+    metrics = evaluateModel(model, data=data_yaml)
     print("Validation metrics:", metrics)
 
     # Predict on an image
-    predictImage(model, "https://ultralytics.com/images/bus.jpg")
+    #predictImage(model, "https://ultralytics.com/images/bus.jpg")
+    predictImage(model, "./test.jpg")
+    predictImage(model, "./placa_coche.jpeg")
 
     # Export model
-    exportModel(model)
-   
+    exportModel(model)    
