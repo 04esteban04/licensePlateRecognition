@@ -128,33 +128,3 @@ def exportModel(model, export_format="onnx", project="model/yolo", name="export"
     
     return Path(export_path)
 
-
-if __name__ == "__main__":
-    # Clean old directories before running
-    cleanDirectories()
-
-    # Load model
-    model = loadModel()
-    
-    # Prepare dataset
-    data_yaml, data_dict = prepareDataset("dataset/License-Plate-Data")
-    
-    #Update model classes to match dataset
-    model.model.names = data_dict["names"]
-    model.model.nc = data_dict["nc"]
-    print(f"Model classes set: {model.model.names}, nc={model.model.nc}")
-
-    # Train
-    trainResults = trainModel(model, data=data_yaml, epochs=10, imgsz=640)
-    
-    # Evaluate
-    metrics = evaluateModel(model, data=data_yaml)
-    print("Validation metrics:", metrics)
-
-    # Predict
-    predictImage(model, "https://ultralytics.com/images/bus.jpg")
-    predictImage(model, "./test.jpg")
-    predictImage(model, "./placa_coche.jpeg")
-
-    # Export
-    exportModel(model)    
