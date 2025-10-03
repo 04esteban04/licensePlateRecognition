@@ -22,11 +22,12 @@ if __name__ == "__main__":
     metrics = evaluateModel(model, data=data_yaml)
     print("Validation metrics:", metrics)
 
+    # Export
+    exportModel(model)   
+
     # Predict
     basePath = Path(__file__).parent.resolve()
-    predictImage(model, str(basePath / "bus.jpg"))
-    predictImage(model, str(basePath / "test.jpg"))
-    predictImage(model, str(basePath / "placa.jpeg"))
-
-    # Export
-    exportModel(model)    
+    predictImage(model, str(basePath / "assets" / "bus.jpg"))
+    predictImage(model, str(basePath / "assets" / "test.jpg"))
+    predictImage(model, str(basePath / "assets" / "plate.jpeg"))
+ 

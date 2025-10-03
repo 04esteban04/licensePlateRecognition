@@ -1,16 +1,22 @@
 PYTHON=python
 
+test:
+	$(PYTHON) -m yolo.test.test
+
 setup:
-	$(PYTHON) yolo/setup.py
+	$(PYTHON) -m yolo.test.setup
 
 train:
-	$(PYTHON) yolo/train.py
+	$(PYTHON) -m yolo.test.train
 
 evaluate:
-	$(PYTHON) yolo/evaluate.py
+	$(PYTHON) -m yolo.test.evaluate
+
+export:
+	$(PYTHON) -m yolo.test.export
 
 predict:
-	$(PYTHON) yolo/predict.py
+	$(PYTHON) -m yolo.test.predict
 
 predict-bash:
 	@if [ -z "$(image)" ]; then \
@@ -25,9 +31,3 @@ predict-windows:
 	) else ( \
 		$(PYTHON) yolo/predict.py $(image) \
 	)
-
-export:
-	$(PYTHON) yolo/export.py
-
-test:
-	$(PYTHON) -m yolo.test.test

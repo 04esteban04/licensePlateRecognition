@@ -1,4 +1,4 @@
-from yolo_utils import loadModel, prepareDataset, trainModel
+from yolo.yolo_utils import loadModel, prepareDataset, trainModel
 
 if __name__ == "__main__":
     
