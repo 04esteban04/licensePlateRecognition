@@ -19,7 +19,7 @@ It includes utilities to automatically prepare the dataset from Kaggle, train th
   - [Prediction](#prediction)
   - [Test all at once](#test-all-at-once)
 
-
+<br>
 
 ## Key Features
 
@@ -80,7 +80,7 @@ make setup
 
 <br>
 
-> **Note:**
+> [!NOTE]  
 > It will be stored at: `dataset/License-Plate-Data/`
 
 <br>
@@ -93,7 +93,7 @@ Train the YOLO model for object detection on the _Kaggle_ dataset by running:
 make train
 ```
 
-> **Note:**
+> [!NOTE]  
 > This will:
 > - Download the dataset if not already available.
 > - Update the `data.yaml` file with absolute paths.
@@ -109,7 +109,7 @@ It could be done by running the command:
 make evaluate
 ```
 
-> **Note:**
+> [!NOTE]  
 > Results will be stored in `models/yolo/validation/`.
 
 <br>
@@ -122,7 +122,7 @@ Export the trained model to ONNX by running:
 make export
 ```
 
-> **Note:**
+> [!NOTE]  
 > It wil be stored at `models/yolo/train/weights/best.onnx`.
 
 <br>
@@ -135,7 +135,7 @@ Run predictions on test images by running:
 make predict
 ```
 
-> **Note:**
+> [!NOTE]  
 > This will generate:
 > - Images with detections in outputs/predict/.
 > - Cropped license plates in outputs/crops/.
@@ -150,7 +150,7 @@ To do all the actions describe above in just one command run:
 make test
 ```
 
-> **Note:**
+> [!NOTE]  
 > The results will be saved under:
 > - `outputs/predict/<filename>` (for every prediction result)
 > - `outputs/crops/<filename>` (for every result with the plate cropped)
