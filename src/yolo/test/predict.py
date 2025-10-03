@@ -1,10 +1,13 @@
 import sys
 from pathlib import Path
-from yolo.yolo_utils import loadModel, prepareDataset, predictImage
+from yolo.yolo_utils import cleanDirectories, loadModel, prepareDataset, predictImage
 
 if __name__ == "__main__":
     basePath = Path(__file__).parent.resolve()
 
+    # Clean folders before running
+    cleanDirectories()
+    
     # Load model
     model = loadModel("../models/yolo/train/weights/best.pt")
 

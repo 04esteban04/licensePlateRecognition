@@ -5,6 +5,8 @@ from ultralytics import YOLO
 import torch
 import yaml
 import kagglehub
+from PIL import Image
+
 
 def cleanDirectories(dirs=["outputs"]):
     """Remove specified directories if they already exist."""
@@ -15,6 +17,7 @@ def cleanDirectories(dirs=["outputs"]):
         if path.exists():
             print(f"Removing directory: {path}")
             shutil.rmtree(path)
+
 
 def loadModel(modelName="yolo11n.pt", saveDir="models/yolo"):
     """Load YOLO model from local storage or download if not found."""
@@ -35,6 +38,7 @@ def loadModel(modelName="yolo11n.pt", saveDir="models/yolo"):
             print(f"Model saved to: {modelPath}")
     
         return model
+
 
 def prepareDataset(localPath="dataset/License-Plate-Data"):
     """Prepare YOLO dataset and update data.yaml with absolute paths."""
@@ -89,6 +93,7 @@ def prepareDataset(localPath="dataset/License-Plate-Data"):
 
     return str(dataYaml), data
 
+
 def trainModel(model, data, epochs=100, imgsz=640, device=None, project="models/yolo", name="train", workers=2):
     """Train YOLO model with given parameters."""
        
@@ -106,19 +111,11 @@ def trainModel(model, data, epochs=100, imgsz=640, device=None, project="models/
         workers=workers
     )
 
+
 def evaluateModel(model, data, project="models/yolo", name="validation"):
     """ Evaluate the model on validation set. """
     return model.val(data=data, project=project, name=name)
 
-def predictImage(model, image_url, show=True, project="outputs", name="predict"):
-    """ Run inference on a single image and save results."""
-    
-    results = model.predict(source=image_url, project=project, name=name, save=True)
-    if show:
-        results[0].show()
-
-    print(f"Predictions saved to: {Path(project) / name}")
-    return results
 
 def exportModel(model, export_format="onnx", project="model/yolo", name="export"):
     """ Export the model to a given format. """
@@ -127,4 +124,40 @@ def exportModel(model, export_format="onnx", project="model/yolo", name="export"
     print(f"Model exported to: {export_path}")
     
     return Path(export_path)
+
+
+def predictImage(model, image_url, show=True, project="outputs", name="predict", crop=True):
+    """ Run inference on a single image and save results."""
+    
+    results = model.predict(source=image_url, project=project, name=name, save=True)
+    if show:
+        results[0].show()
+
+    print(f"Predictions saved to: {Path(project) / name}")
+
+    if crop:
+        cropPlates(results, saveDir=Path(project) / "crops")
+
+    return results
+
+
+def cropPlates(results, saveDir="outputs/crops"):
+    """
+    Crop the license plates from the results and save them as individual images.
+    """
+    savePath = Path(saveDir)
+    savePath.mkdir(parents=True, exist_ok=True)
+
+    for i, r in enumerate(results):
+        imgPath = Path(r.path)  # original image path with plate detections
+        img = Image.open(imgPath).convert("RGB")
+
+        boxes = r.boxes.xyxy.cpu().numpy().astype(int)  # [x1, y1, x2, y2]
+        
+        for j, box in enumerate(boxes):
+            x1, y1, x2, y2 = box
+            cropped = img.crop((x1, y1, x2, y2))
+            cropFile = savePath / f"{imgPath.stem}_plate{j+1}.jpg"
+            cropped.save(cropFile)
+            print(f"Saved cropped plate: {cropFile}")
 

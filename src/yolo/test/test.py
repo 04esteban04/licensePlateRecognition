@@ -1,7 +1,7 @@
 from yolo.yolo_utils import *
 
 if __name__ == "__main__":
-    # Clean old directories before running
+    # Clean folders before running
     cleanDirectories()
 
     # Load model
