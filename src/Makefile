@@ -1,4 +1,5 @@
 PYTHON=python
+.PHONY: test setup train evaluate export predict predict-bash predict-windows segmentation
 
 test:
 	$(PYTHON) -m yolo.test.test
@@ -31,3 +32,6 @@ predict-windows:
 	) else ( \
 		$(PYTHON) yolo/predict.py $(image) \
 	)
+
+segmentation:
+	$(PYTHON) -m segmentation.test.detectChar
