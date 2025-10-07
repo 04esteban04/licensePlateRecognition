@@ -28,6 +28,6 @@ if __name__ == "__main__":
     # Predict
     basePath = Path(__file__).parent.resolve()
     predictImage(model, str(basePath / "assets" / "bus.jpg"))
-    predictImage(model, str(basePath / "assets" / "test.jpg"))
     predictImage(model, str(basePath / "assets" / "plate.jpeg"))
+    predictImage(model, str(basePath / "assets" / "plate.jpg"))
  

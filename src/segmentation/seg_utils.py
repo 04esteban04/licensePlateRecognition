@@ -85,8 +85,32 @@ def resizeImage(img, width=800, height=200):
     return cv2.resize(img, (width, height), interpolation=cv2.INTER_AREA)
 
 
+def saveCharacterCrops(img, contours, imagePath, outputRoot="outputs/charCrops"):
+    """
+    Crop each character detected in an image and save it as char_#.ext
+    inside a folder specific to the image name.
+    """
+    # Build output folder for this image
+    imgPath = Path(imagePath)
+    folderName = imgPath.stem
+    ext = imgPath.suffix if imgPath.suffix else ".jpg"
+
+    saveDir = Path(outputRoot) / folderName
+    saveDir.mkdir(parents=True, exist_ok=True)
+
+    # Save each cropped character
+    for i, (x, y, w, h) in enumerate(contours, start=1):
+
+        charCrop = img[y:y+h, x:x+w]
+        cropFile = saveDir / f"char_{i}{ext}"
+        cv2.imwrite(str(cropFile), charCrop)
+        print(f"Saved character: {cropFile}")
+
+    return saveDir
+
+
 def detectCharacters(imagePath):
-    """Main function: process an image and detect character bounding boxes."""
+    """Main function to process an image and detect character bounding boxes."""
     
     # Read and preprocess
     img = readImage(imagePath)
@@ -103,7 +127,10 @@ def detectCharacters(imagePath):
     filteredContours = filterContours(contours)
 
     # Draw results
-    outputImg = drawBoundingBoxes(img, filteredContours)
+    outputImg = drawBoundingBoxes(threshImg, filteredContours)
     resizedImg = resizeImage(outputImg)
+
+    # Crop and save each detected character
+    saveDir = saveCharacterCrops(outputImg, filteredContours, imagePath)
 
     return filteredContours, outputImg, resizedImg

@@ -5,7 +5,7 @@ import numpy as np
 
 if __name__ == "__main__":
 
-    imagePath = "outputs/crops/plate_plate1.jpg"
+    imagePath = "outputs/crops/plate.jpeg"
     contours, resultImg, resizedImg = detectCharacters(imagePath)
 
     print(f"\nDetected {len(contours)} character bounding boxes. \n")

@@ -151,13 +151,15 @@ def cropPlates(results, saveDir="outputs/crops"):
     for i, r in enumerate(results):
         imgPath = Path(r.path)  # original image path with plate detections
         img = Image.open(imgPath).convert("RGB")
+        ext = imgPath.suffix
 
         boxes = r.boxes.xyxy.cpu().numpy().astype(int)  # [x1, y1, x2, y2]
         
         for j, box in enumerate(boxes):
             x1, y1, x2, y2 = box
             cropped = img.crop((x1, y1, x2, y2))
-            cropFile = savePath / f"{imgPath.stem}_plate{j+1}.jpg"
-            cropped.save(cropFile)
-            print(f"Saved cropped plate: {cropFile}")
-
+            
+            cropFileName = savePath / f"{imgPath.stem}{ext}"
+            cropped.save(cropFileName)
+            
+            print(f"Saved cropped plate: {cropFileName}")

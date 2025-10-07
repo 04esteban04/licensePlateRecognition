@@ -21,8 +21,8 @@ if __name__ == "__main__":
 
     # Predict
     predictImage(model, str(basePath / "assets" / "bus.jpg"))
-    predictImage(model, str(basePath / "assets" / "test.jpg"))
     predictImage(model, str(basePath / "assets" / "plate.jpeg"))
+    predictImage(model, str(basePath / "assets" / "plate2.jpg"))
 
 
     """ 
