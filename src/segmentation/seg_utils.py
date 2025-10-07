@@ -1,137 +1,109 @@
-""" import cv2
+import cv2
 import numpy as np
 from pathlib import Path
 
-def segmentCharacters(platePath, outputDir="outputs/characters"):
+
+def readImage(imagePath):
+    """Read image from path and return it."""
+    img = cv2.imread(str(Path(imagePath).resolve()))
     
-    #Segment characters from a cropped license plate image.
+    if img is None:
+        raise FileNotFoundError(f"Image not found at: {imagePath}")
     
+    return img
 
-    plateImg = cv2.imread(str(platePath))
-    if plateImg is None:
-        raise FileNotFoundError(f"Image not found: {platePath}")
 
-    gray = cv2.cvtColor(plateImg, cv2.COLOR_BGR2GRAY)
+def toGrayscale(img):
+    """Convert image to grayscale."""
+    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # Enhance contrast
-    gray = cv2.equalizeHist(gray)
 
-    # Binarize (convert to black & white)
-    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+def reduceNoise(grayImg):
+    """Reduce noise using Gaussian blur."""
+    return cv2.GaussianBlur(grayImg, (3, 3), 0)
 
-    # Find contours (potential character regions)
-    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Output directory
-    Path(outputDir).mkdir(parents=True, exist_ok=True)
+def applyBinarization(grayImg):
+    """Apply adaptive thresholding for binarization."""
+    
+    return cv2.adaptiveThreshold(
+        grayImg, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY_INV, 21, 10
+    )
 
-    # Filter & crop characters
-    charIndex = 0
+
+def closeGaps(threshImg):
+    """Apply morphological closing to fill small gaps in characters."""
+    kernelClose = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+    return cv2.morphologyEx(threshImg, cv2.MORPH_CLOSE, kernelClose)
+
+
+def dilateThinCharacters(threshImg):
+    """Dilate thin characters slightly to prevent breaks."""
+    kernelDilate = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 1))
+    return cv2.dilate(threshImg, kernelDilate, iterations=1)
+
+
+def findCharacterContours(threshImg):
+    """Find external contours representing character candidates."""
+    contours, _ = cv2.findContours(threshImg, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    return contours
+
+
+def filterContours(contours):
+    """Filter contours based on size, aspect ratio, and area."""
+    filteredContours = []
+
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
 
-        # Filter out noise / non-character regions
-        if h > 0.5 * plateImg.shape[0] and 0.2 * plateImg.shape[1] > w > 10:
-            charCrop = plateImg[y:y+h, x:x+w]
-            savePath = Path(outputDir) / f"{Path(platePath).stem}_char{charIndex+1}.jpg"
-            cv2.imwrite(str(savePath), charCrop)
-            charIndex += 1
-
-    print(f"✅ {charIndex} characters saved to {outputDir}")
- """
-
-
-import cv2
-from pathlib import Path
-import numpy as np
-
-def convertToGrayscale(inputDir="outputs/crops", outputDir="outputs/characters_gray"):
-    """
-    Lee todas las imágenes de inputDir y las guarda en escala de grises en outputDir.
-    """
-
-    inputDir = Path(inputDir)
-    outputDir = Path(outputDir)
-
-    image_paths = sorted(inputDir.glob("*.*"))  # lee todas las imágenes
-    if not image_paths:
-        print(f"No se encontraron imágenes en {inputDir}")
-        return
-
-    for i, img_path in enumerate(image_paths, start=1):
-        img = cv2.imread(str(img_path))
-        if img is None:
-            print(f"⚠️  No se pudo leer la imagen: {img_path}")
-            continue
-
-        # Convertir a escala de grises
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-        # Mejorar contraste
-        gray = cv2.equalizeHist(gray)
-
-        # Binarización usando Otsu
-        _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-        savePath = outputDir / f"{img_path.stem}_bin.jpg"
-        cv2.imwrite(str(savePath), binary)
-
-        print(f"✅ Imagen {i}: {img_path.name} convertida y binarizada -> {savePath}")
+        # Size to include small characters
+        if 6 < w < 150 and 18 < h < 200:
+            aspectRatio = w / float(h)
+            
+            if 0.08 < aspectRatio < 1.0:
+                area = cv2.contourArea(cnt)
+            
+                if area > 20:  # Remove small noise
+                    filteredContours.append((x, y, w, h))
+    
+    return sorted(filteredContours, key=lambda b: b[0])
 
 
+def drawBoundingBoxes(img, contours):
+    """Draw bounding boxes around detected characters."""
+    outputImg = img.copy()
+    
+    for x, y, w, h in contours:
+        cv2.rectangle(outputImg, (x - 1, y - 1), (x + w, y + h), (0, 255, 0), 1)
+    
+    return outputImg
 
 
-def segmentByColumns(inputDir="outputs/characters", outputDir="outputs/characters_segmented"):
-    """
-    Segmenta caracteres de cada imagen binarizada usando proyección vertical.
-    Guarda cada carácter como una imagen individual en outputDir.
-    """
+def resizeImage(img, width=800, height=200):
+    """Resize image for better visualization."""
+    return cv2.resize(img, (width, height), interpolation=cv2.INTER_AREA)
 
-    inputDir = Path(inputDir)
-    outputDir = Path(outputDir)
-    outputDir.mkdir(parents=True, exist_ok=True)
 
-    image_paths = sorted(inputDir.glob("*.*"))
-    if not image_paths:
-        print(f"No se encontraron imágenes en {inputDir}")
-        return
+def detectCharacters(imagePath):
+    """Main function: process an image and detect character bounding boxes."""
+    
+    # Read and preprocess
+    img = readImage(imagePath)
+    grayImg = toGrayscale(img)
+    grayImg = reduceNoise(grayImg)
+    threshImg = applyBinarization(grayImg)
 
-    for i, img_path in enumerate(image_paths, start=1):
-        img = cv2.imread(str(img_path), cv2.IMREAD_GRAYSCALE)
-        if img is None:
-            print(f"⚠️ No se pudo leer la imagen: {img_path}")
-            continue
+    # Morphological operations
+    threshImg = closeGaps(threshImg)
+    threshImg = dilateThinCharacters(threshImg)
 
-        # --- Proyección vertical ---
-        projection = np.sum(img == 255, axis=0)  # contar píxeles blancos por columna
-        norm_proj = projection / np.max(projection)
+    # Contour detection and filtering
+    contours = findCharacterContours(threshImg)
+    filteredContours = filterContours(contours)
 
-        # Umbral para detectar columnas con caracteres
-        threshold = 0.1  # ajustar si es necesario
-        binary_proj = (norm_proj > threshold).astype(np.uint8)
+    # Draw results
+    outputImg = drawBoundingBoxes(img, filteredContours)
+    resizedImg = resizeImage(outputImg)
 
-        # Detectar segmentos continuos
-        segments = []
-        start = None
-        for j, val in enumerate(binary_proj):
-            if val and start is None:
-                start = j
-            elif not val and start is not None:
-                end = j
-                if end - start > 3:  # descarta segmentos muy pequeños
-                    segments.append((start, end))
-                start = None
-        if start is not None:
-            segments.append((start, len(binary_proj)))
-
-        # --- Guardar caracteres segmentados ---
-        plate_name = img_path.stem
-        plate_output_dir = outputDir / plate_name
-        plate_output_dir.mkdir(parents=True, exist_ok=True)
-
-        for k, (x_start, x_end) in enumerate(segments):
-            char_crop = img[:, x_start:x_end]
-            save_path = plate_output_dir / f"{plate_name}_char{k+1}.jpg"
-            cv2.imwrite(str(save_path), char_crop)
-
-        print(f"✅ {len(segments)} caracteres segmentados de {img_path.name} en {plate_output_dir}")
+    return filteredContours, outputImg, resizedImg
