@@ -9,10 +9,10 @@ from PIL import Image
 
 # ---------------- CONFIG ---------------- #
 MODEL_NAME = "yolo11n.pt"  # lightweight YOLOv11 model
-MODEL_DIR = Path("models/yoloRecognition")
-DATASET_DIR = Path("../dataset/dataset_characters_yolo")
-OUTPUT_DIRS = ["models/yoloRecognition"]
-EPOCHS = 100
+MODEL_DIR = Path("../models/yoloDatasetRecognition")
+DATASET_DIR = Path("../dataset/yoloDatasetRecognition")
+OUTPUT_DIRS = ["../models/yoloDatasetRecognition"]
+EPOCHS = 10
 IMG_SIZE = 64
 
 
@@ -182,7 +182,15 @@ if __name__ == "__main__":
     print("\n🚀 All done! Your YOLO model is trained and ready to use.")
    
     # Test prediction on a sample image    
-    model = loadModel("../models/yoloRecognition/train/weights/best.pt")
+    model = loadModel("best.pt", "../models/yoloDatasetRecognition/train/weights")
+
+    # Prepare dataset
+    data_yaml, data_dict = prepareDataset()
     
-    prediction = predictImage(model, imagePath="../dataset/dataset_characters_yolo/test/images/A_0280.png")
-    print(prediction)
+    #Update model classes to match dataset
+    model.model.names = data_dict["names"]
+    model.model.nc = data_dict["nc"]
+    print(f"Model classes set: {model.model.names}, nc={model.model.nc}")
+
+    print("\n---\n")
+    prediction = predictImage(model, imagePath="./char_4.jpg", crop=False)
