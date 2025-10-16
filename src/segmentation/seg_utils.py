@@ -13,6 +13,41 @@ def readImage(imagePath):
     return img
 
 
+def detectRedColor(img, threshold=0.01):
+    """
+    Detects whether an image (such as a license plate with a white background and red text)
+    contains a significant amount of red color.
+
+    Returns True if the percentage of red pixels exceeds the given threshold.
+
+    Parameters:
+        img (numpy.ndarray): Input image in BGR format.
+        threshold (float): Minimum red pixel ratio (0–1) to consider the image as containing red.
+    """
+    if img is None:
+        raise ValueError("Image is None. Please provide a valid image.")
+
+    # Convert BGR → HSV
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+    # Define red color ranges in HSV
+    lowerRed1 = np.array([0, 70, 50])
+    upperRed1 = np.array([10, 255, 255])
+    lowerRed2 = np.array([170, 70, 50])
+    upperRed2 = np.array([180, 255, 255])
+
+    # Create red color masks
+    mask1 = cv2.inRange(hsv, lowerRed1, upperRed1)
+    mask2 = cv2.inRange(hsv, lowerRed2, upperRed2)
+    redMask = mask1 + mask2
+
+    # Calculate red pixel ratio
+    redRatio = np.sum(redMask > 0) / redMask.size
+    containsRed = redRatio > threshold
+
+    return containsRed, redRatio
+
+
 def toGrayscale(img):
     """Convert image to grayscale."""
     return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -85,7 +120,7 @@ def resizeImage(img, width=800, height=200):
     return cv2.resize(img, (width, height), interpolation=cv2.INTER_AREA)
 
 
-def saveCharacterCrops(img, contours, imagePath, outputRoot="outputs/charCrops"):
+def saveCharacterCropsTest(img, contours, imagePath, outputRoot="outputs/charCrops"):
     """
     Crop each character detected in an image and save it as char_#.ext
     inside a folder specific to the image name.
@@ -109,11 +144,70 @@ def saveCharacterCrops(img, contours, imagePath, outputRoot="outputs/charCrops")
     return saveDir
 
 
+def saveCharacterCrops(img, contours, imagePath, outputRoot="outputs/charCrops", targetSize=64, border=4):
+    """
+    Crop each character detected in an image, center it in a square black background,
+    apply binarization and morphology, and save it for YOLO training.
+
+    Parameters:
+        img (ndarray): Original image (grayscale)
+        contours (list of tuples): List of bounding boxes (x, y, w, h)
+        imagePath (str or Path): Path to the original image
+        outputRoot (str): Root folder for saved character crops
+        targetSize (int): Size of the square output image (default 64x64)
+    """
+
+    # Build output folder for this image
+    imgPath = Path(imagePath)
+    folderName = imgPath.stem
+    ext = imgPath.suffix if imgPath.suffix else ".png"
+    saveDir = Path(outputRoot) / folderName
+    saveDir.mkdir(parents=True, exist_ok=True)
+
+    # Save each cropped character
+    for i, (x, y, w, h) in enumerate(contours, start=1):
+        charCrop = img[y:y+h, x:x+w]
+
+        # Resize proportionally to fit target size with border
+        scale = min((targetSize - 6*border)/w, (targetSize - 6*border)/h)
+        newW, newH = int(w*scale), int(h*scale)
+        resizedChar = cv2.resize(charCrop, (newW, newH))
+
+        # Create square black background
+        squareImg = np.zeros((targetSize, targetSize), dtype=resizedChar.dtype)
+
+        # Center the character
+        xOffset = (targetSize - newW) // 2
+        yOffset = (targetSize - newH) // 2
+        squareImg[yOffset:yOffset+newH, xOffset:xOffset+newW] = resizedChar
+
+        # Binarization
+        _, squareImg = cv2.threshold(squareImg, 127, 255, cv2.THRESH_BINARY)
+
+        # Optional morphology (slight open/close)
+        kernel = np.ones((2, 2), np.uint8)
+        if np.random.rand() > 0.5:
+            squareImg = cv2.morphologyEx(squareImg, cv2.MORPH_OPEN, kernel)
+        else:
+            squareImg = cv2.morphologyEx(squareImg, cv2.MORPH_CLOSE, kernel)
+       
+        # Save processed character
+        cropFile = saveDir / f"char_{i}{ext}"
+        cv2.imwrite(str(cropFile), squareImg)
+        print(f"Saved processed character: {cropFile}")
+
+    return saveDir
+
+
 def detectCharacters(imagePath):
     """Main function to process an image and detect character bounding boxes."""
     
     # Read and preprocess
     img = readImage(imagePath)
+
+    redPlate = detectRedColor(img)
+    print(f"Red color detected: {redPlate[0]} (Red ratio: {redPlate[1]:.4f})")
+
     grayImg = toGrayscale(img)
     grayImg = reduceNoise(grayImg)
     threshImg = applyBinarization(grayImg)
