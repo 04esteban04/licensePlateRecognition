@@ -9,9 +9,9 @@ from PIL import Image
 
 # ---------------- CONFIG ---------------- #
 MODEL_NAME = "yolo11n.pt"  # lightweight YOLOv11 model
-MODEL_DIR = Path("../models/yoloDatasetRecognition")
-DATASET_DIR = Path("../dataset/yoloDatasetRecognition")
-OUTPUT_DIRS = ["../models/yoloDatasetRecognition"]
+MODEL_DIR = Path("../models/yoloCharInference")
+DATASET_DIR = Path("../dataset/yoloCharDataset")
+OUTPUT_DIRS = ["../models/yoloCharInference"]
 EPOCHS = 10
 IMG_SIZE = 64
 
@@ -108,7 +108,7 @@ def exportModel(model, exportFormat="onnx", project=MODEL_DIR, name="export"):
     return Path(exportPath)
 
 
-def predictImage(model, imagePath, project="outputs", name="predictChar", show=True, crop=True):
+def predictImage(model, imagePath, project="../outputs", name="charInference", show=True, crop=True):
     """Run inference on a single image, save results, and print predicted labels."""
     print(f"🔍 Predicting: {imagePath}")
     
@@ -159,7 +159,6 @@ def cropDetections(results, saveDir="outputs/crops"):
             print(f"🖼️ Saved cropped image: {cropFileName}")
 
 
-# ---------------- MAIN EXECUTION ---------------- #
 if __name__ == "__main__":
     
     cleanDirectories(OUTPUT_DIRS)
@@ -176,21 +175,7 @@ if __name__ == "__main__":
     # Validate model
     evaluateModel(model, dataYamlPath)
 
-    # (Optional) Export model
+    # Export model
     exportModel(model)
     
-    print("\n🚀 All done! Your YOLO model is trained and ready to use.")
-   
-    # Test prediction on a sample image    
-    model = loadModel("best.pt", "../models/yoloDatasetRecognition/train/weights")
-
-    # Prepare dataset
-    data_yaml, data_dict = prepareDataset()
-    
-    #Update model classes to match dataset
-    model.model.names = data_dict["names"]
-    model.model.nc = data_dict["nc"]
-    print(f"Model classes set: {model.model.names}, nc={model.model.nc}")
-
-    print("\n---\n")
-    prediction = predictImage(model, imagePath="./char_4.jpg", crop=False)
+    print("\nAll done! The YOLO model is trained and ready to use.")
