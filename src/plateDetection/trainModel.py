@@ -1,4 +1,4 @@
-from utils.yoloUtils import loadModel, prepareDataset, trainModel, evaluateModel, exportModel
+from utils.plateDetectionUtils import loadModel, prepareDataset, trainModel, evaluateModel, exportModel
 
 if __name__ == "__main__":
     

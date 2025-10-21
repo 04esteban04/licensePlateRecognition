@@ -9,9 +9,9 @@ from PIL import Image
 
 # ---------------- CONFIG ---------------- #
 MODEL_NAME = "yolo11n.pt"  # lightweight YOLOv11 model
-MODEL_DIR = Path("../models/yoloCharInference")
-DATASET_DIR = Path("../dataset/yoloCharDataset")
-OUTPUT_DIRS = ["../models/yoloCharInference"]
+MODEL_DIR = Path("./models/yoloCharInference")
+DATASET_DIR = Path("./dataset/yoloCharDataset")
+OUTPUT_DIRS = ["./models/yoloCharInference"]
 EPOCHS = 10
 IMG_SIZE = 64
 
@@ -157,25 +157,3 @@ def cropDetections(results, saveDir="outputs/crops"):
             cropFileName = savePath / f"{imgPath.stem}_{j}.png"
             cropped.save(cropFileName)
             print(f"🖼️ Saved cropped image: {cropFileName}")
-
-
-if __name__ == "__main__":
-    
-    cleanDirectories(OUTPUT_DIRS)
-
-    # Load YOLO model
-    model = loadModel()
-
-    # Load dataset YAML
-    dataYamlPath, data = prepareDataset()
-
-    # Train model
-    results = trainModel(model, dataYamlPath)
-
-    # Validate model
-    evaluateModel(model, dataYamlPath)
-
-    # Export model
-    exportModel(model)
-    
-    print("\nAll done! The YOLO model is trained and ready to use.")

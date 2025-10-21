@@ -1,4 +1,4 @@
-from utils.yoloUtils import loadModel, exportModel
+from utils.plateDetectionUtils import loadModel, exportModel
 
 if __name__ == "__main__":
     

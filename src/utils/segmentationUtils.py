@@ -205,8 +205,8 @@ def detectCharacters(imagePath):
     # Read and preprocess
     img = readImage(imagePath)
 
-    redPlate = detectRedColor(img)
-    print(f"Red color detected: {redPlate[0]} (Red ratio: {redPlate[1]:.4f})")
+    isRedPlate = detectRedColor(img)
+    print(f"Red color detected: {isRedPlate[0]} (Red ratio: {isRedPlate[1]:.4f})")
 
     grayImg = toGrayscale(img)
     grayImg = reduceNoise(grayImg)
@@ -221,10 +221,11 @@ def detectCharacters(imagePath):
     filteredContours = filterContours(contours)
 
     # Draw results
+    inputImgWithBoxes = drawBoundingBoxes(img, filteredContours)
     outputImg = drawBoundingBoxes(threshImg, filteredContours)
     resizedImg = resizeImage(outputImg)
 
     # Crop and save each detected character
     saveDir = saveCharacterCrops(outputImg, filteredContours, imagePath)
 
-    return filteredContours, outputImg, resizedImg
+    return filteredContours, inputImgWithBoxes, outputImg, resizedImg

@@ -17,7 +17,7 @@ export:
 	$(PYTHON) -m yolo.test.export
 
 predict:
-	$(PYTHON) -m yolo.test.predict
+	$(PYTHON) -m plateDetection.testModel
 
 predict-bash:
 	@if [ -z "$(image)" ]; then \
@@ -33,8 +33,6 @@ predict-windows:
 		$(PYTHON) yolo/predict.py $(image) \
 	)
 
-segmentation:
-	$(PYTHON) -m segmentation.test.detectChar
 
 
 # Plate Detection Model Targets
@@ -53,3 +51,27 @@ evaluatePlateDetectionModel:
 
 exportPlateDetectionModel:
 	$(PYTHON) -m plateDetection.exportModel
+
+
+# Character Segmentation Targets
+
+segmentation:
+	$(PYTHON) -m segmentation.detectChar $(IMG)
+
+
+# Character Inference Model Targets
+
+setupCharInferenceDataset:
+	$(PYTHON) -m charInference.setupDataset
+
+trainCharInferenceModel:
+	$(PYTHON) -m charInference.trainModel
+
+testCharInferenceModel:
+	$(PYTHON) -m charInference.testModel
+
+evaluateCharInferenceModel:
+	$(PYTHON) -m charInference.evaluateModel
+
+exportCharInferenceModel:
+	$(PYTHON) -m charInference.exportModel

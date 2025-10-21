@@ -1,4 +1,4 @@
-from utils.yoloUtils import loadModel, prepareDataset, evaluateModel
+from utils.plateDetectionUtils import loadModel, prepareDataset, evaluateModel
 
 if __name__ == "__main__":
 

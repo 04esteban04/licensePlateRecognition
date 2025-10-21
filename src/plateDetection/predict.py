@@ -1,4 +1,4 @@
-from utils.yoloUtils import cleanDirectories, loadModel, prepareDataset, predictImage
+from utils.plateDetectionUtils import cleanDirectories, loadModel, prepareDataset, predictImage
 
 if __name__ == "__main__":
     basePath = Path(__file__).parent.resolve()

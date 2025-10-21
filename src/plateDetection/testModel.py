@@ -1,4 +1,4 @@
-from utils.yoloUtils import cleanDirectories, loadModel, prepareDataset, predictImage
+from utils.plateDetectionUtils import cleanDirectories, loadModel, prepareDataset, predictImage
 
 if __name__ == "__main__":
     
@@ -21,4 +21,5 @@ if __name__ == "__main__":
     predictImage(model, "./assets/testImages/bus.jpg")
     predictImage(model, "./assets/testImages/plate.jpeg")
     predictImage(model, "./assets/testImages/plate2.jpg")
+    predictImage(model, "./assets/testImages/cl-test.jpg")
  
