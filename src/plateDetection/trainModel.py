@@ -1,16 +1,16 @@
-from utils.yoloUtils import loadModel, prepareDataset, trainModel
+from utils.yoloUtils import loadModel, prepareDataset, trainModel, evaluateModel, exportModel
 
 if __name__ == "__main__":
     
     # Load yolo default model
-    model = loadModel()
+    model = loadModel(saveDir="./models/yoloPlateDetection")
 
     # Prepare dataset
     dataYaml, dataDict = prepareDataset("dataset/LicensePlateData")
     
     #Update model classes to match dataset
-    model.model.names = data_dict["names"]
-    model.model.nc = data_dict["nc"]
+    model.model.names = dataDict["names"]
+    model.model.nc = dataDict["nc"]
     print(f"\nModel classes set: {model.model.names}, nc={model.model.nc}  \n")
     
     print(f"Training model with classes: {model.model.names}\n")
@@ -21,7 +21,7 @@ if __name__ == "__main__":
     print("Training completed!\n")
 
     # Evaluate
-    metrics = evaluateModel(model, data=data_yaml)
+    metrics = evaluateModel(model, data=dataYaml, project="models/yoloPlateDetection")
     print("\n Validation metrics:", metrics)
 
     # Export

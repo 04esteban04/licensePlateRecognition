@@ -40,7 +40,7 @@ def loadModel(modelName="yolo11n.pt", saveDir="models/test"):
         return model
 
 
-def prepareDataset(localPath="dataset/License-Plate-Data"):
+def prepareDataset(localPath="dataset/testDataset"):
     """Prepare YOLO dataset and update data.yaml with absolute paths."""
 
     datasetPath = Path(localPath).expanduser().resolve()
