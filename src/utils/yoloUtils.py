@@ -19,7 +19,7 @@ def cleanDirectories(dirs=["outputs"]):
             shutil.rmtree(path)
 
 
-def loadModel(modelName="yolo11n.pt", saveDir="models/yolo"):
+def loadModel(modelName="yolo11n.pt", saveDir="models/test"):
     """Load YOLO model from local storage or download if not found."""
 
     Path(saveDir).mkdir(parents=True, exist_ok=True)
@@ -117,7 +117,7 @@ def evaluateModel(model, data, project="models/yolo", name="validation"):
     return model.val(data=data, project=project, name=name)
 
 
-def exportModel(model, export_format="onnx", project="model/yolo", name="export"):
+def exportModel(model, export_format="onnx", project="models/yolo", name="export"):
     """ Export the model to a given format. """
 
     export_path = model.export(format=export_format, project=project, name=name)

@@ -35,3 +35,21 @@ predict-windows:
 
 segmentation:
 	$(PYTHON) -m segmentation.test.detectChar
+
+
+# Plate Detection Model Targets
+
+setupPlateDetectionDataset:
+	$(PYTHON) -m plateDetection.setupDataset
+
+trainPlateDetectionModel:
+	$(PYTHON) -m plateDetection.trainModel
+
+testPlateDetectionModel:
+	$(PYTHON) -m plateDetection.testModel
+
+evaluatePlateDetectionModel:
+	$(PYTHON) -m plateDetection.evaluateModel
+
+exportPlateDetectionModel:
+	$(PYTHON) -m plateDetection.exportModel

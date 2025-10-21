@@ -1,6 +1,4 @@
-import sys
-from pathlib import Path
-from yolo.yolo_utils import cleanDirectories, loadModel, prepareDataset, predictImage
+from utils.yoloUtils import cleanDirectories, loadModel, prepareDataset, predictImage
 
 if __name__ == "__main__":
     basePath = Path(__file__).parent.resolve()
@@ -9,7 +7,7 @@ if __name__ == "__main__":
     cleanDirectories()
     
     # Load model
-    model = loadModel("../models/yolo/train/weights/best.pt")
+    model = loadModel("best.pt", "./models/yoloPlateDetection/train/weights")
 
     # Prepare dataset
     data_yaml, data_dict = prepareDataset("dataset/License-Plate-Data")
@@ -20,9 +18,9 @@ if __name__ == "__main__":
     print(f"Model classes set: {model.model.names}, nc={model.model.nc}")
 
     # Predict
-    predictImage(model, str(basePath / "assets" / "bus.jpg"))
-    predictImage(model, str(basePath / "assets" / "plate.jpeg"))
-    predictImage(model, str(basePath / "assets" / "plate2.jpg"))
+    predictImage(model, "./assets/testImages/bus.jpg")
+    predictImage(model, "./assets/testImages/plate.jpeg")
+    predictImage(model, "./assets/testImages/plate2.jpg")
 
 
     """ 
