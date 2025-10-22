@@ -120,30 +120,6 @@ def resizeImage(img, width=800, height=200):
     return cv2.resize(img, (width, height), interpolation=cv2.INTER_AREA)
 
 
-def saveCharacterCropsTest(img, contours, imagePath, outputRoot="outputs/charCrops"):
-    """
-    Crop each character detected in an image and save it as char_#.ext
-    inside a folder specific to the image name.
-    """
-    # Build output folder for this image
-    imgPath = Path(imagePath)
-    folderName = imgPath.stem
-    ext = imgPath.suffix if imgPath.suffix else ".jpg"
-
-    saveDir = Path(outputRoot) / folderName
-    saveDir.mkdir(parents=True, exist_ok=True)
-
-    # Save each cropped character
-    for i, (x, y, w, h) in enumerate(contours, start=1):
-
-        charCrop = img[y:y+h, x:x+w]
-        cropFile = saveDir / f"char_{i}{ext}"
-        cv2.imwrite(str(cropFile), charCrop)
-        print(f"Saved character: {cropFile}")
-
-    return saveDir
-
-
 def saveCharacterCrops(img, contours, imagePath, outputRoot="outputs/charCrops", targetSize=64, border=4):
     """
     Crop each character detected in an image, center it in a square black background,
@@ -199,6 +175,32 @@ def saveCharacterCrops(img, contours, imagePath, outputRoot="outputs/charCrops",
     return saveDir
 
 
+def saveImages(inputImgWithBoxes, resultImg, resizedImg, outputRoot="outputs/segmentationResults", imagePath=None):
+    """Save intermediate and final images for visualization."""
+    saveDir = Path(outputRoot)
+    saveDir.mkdir(parents=True, exist_ok=True)
+
+    if imagePath:
+        imgPath = Path(imagePath)
+        baseName = imgPath.stem
+        ext = imgPath.suffix if imgPath.suffix else ".png"
+    else:
+        baseName = "result"
+        ext = ".png"
+
+    inputImgPath = saveDir / f"{baseName}_inputWithBoxes{ext}"
+    resultImgPath = saveDir / f"{baseName}_threshWithBoxes{ext}"
+    resizedImgPath = saveDir / f"{baseName}_resized{ext}"
+
+    cv2.imwrite(str(inputImgPath), inputImgWithBoxes)
+    cv2.imwrite(str(resultImgPath), resultImg)
+    cv2.imwrite(str(resizedImgPath), resizedImg)
+
+    print(f"Saved input image with boxes: {inputImgPath}")
+    print(f"Saved thresholded image with boxes: {resultImgPath}")
+    print(f"Saved resized output image: {resizedImgPath}")
+
+
 def detectCharacters(imagePath):
     """Main function to process an image and detect character bounding boxes."""
     
@@ -224,6 +226,9 @@ def detectCharacters(imagePath):
     inputImgWithBoxes = drawBoundingBoxes(img, filteredContours)
     outputImg = drawBoundingBoxes(threshImg, filteredContours)
     resizedImg = resizeImage(outputImg)
+    
+    # Save intermediate and final images
+    saveImages(inputImgWithBoxes, outputImg, resizedImg)
 
     # Crop and save each detected character
     saveDir = saveCharacterCrops(outputImg, filteredContours, imagePath)

@@ -126,7 +126,7 @@ def exportModel(model, export_format="onnx", project="models/yolo", name="export
     return Path(export_path)
 
 
-def predictImage(model, image_url, show=True, project="outputs", name="predict", crop=True):
+def predictImage(model, image_url, show=True, project="outputs", name="plateDetection", crop=True):
     """ Run inference on a single image and save results."""
     
     results = model.predict(source=image_url, project=project, name=name, save=True)
@@ -136,12 +136,12 @@ def predictImage(model, image_url, show=True, project="outputs", name="predict",
     print(f"Predictions saved to: {Path(project) / name}")
 
     if crop:
-        cropPlates(results, saveDir=Path(project) / "crops")
+        cropPlates(results)
 
     return results
 
 
-def cropPlates(results, saveDir="outputs/crops"):
+def cropPlates(results, saveDir="outputs/plateCrop"):
     """
     Crop the license plates from the results and save them as individual images.
     """

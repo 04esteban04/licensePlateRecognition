@@ -1,6 +1,13 @@
 PYTHON=python
 
 # ------------------------------- #
+# Main Target
+# ------------------------------- #
+main:
+	$(PYTHON) -m main
+
+
+# ------------------------------- #
 # Plate Detection Model Targets
 # ------------------------------- #
 setupPlateDetectionDataset:
