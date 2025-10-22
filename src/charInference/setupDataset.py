@@ -6,8 +6,8 @@ import cv2
 import numpy as np
 
 
-DEFAULT_SOURCE_DIR = "../assets/charImages"   # Folder with base character images (e.g., char_A.jpg)
-DEFAULT_OUTPUT_DIR = "../dataset/yoloCharDataset"
+DEFAULT_SOURCE_DIR = "./assets/charImages"   # Folder with base character images (e.g., char_A.jpg)
+DEFAULT_OUTPUT_DIR = "./dataset/yoloCharDataset"
 DEFAULT_VAL_SPLIT = 0.2
 DEFAULT_SAMPLES_PER_IMAGE = 300     # Number of samples generated per base image
 DEFAULT_SEED = None                 # Optional seed for reproducibility
@@ -122,8 +122,8 @@ def createDataYaml(outputDir):
     """
     yamlPath = Path(outputDir) / "data.yaml"
     data = {
-        "train": f"./{outputDir}/train/images",
-        "val": f"./{outputDir}/val/images",
+        "train": f"{outputDir}/train/images",
+        "val": f"{outputDir}/val/images",
         "nc": len(CLASSES),
         "names": CLASSES
     }
@@ -165,19 +165,28 @@ def generateYoloCharDataset(sourceDir=DEFAULT_SOURCE_DIR,
     # trainImgs = allImages[:splitIdx]
     # valImgs = allImages[splitIdx:]
 
-    # Balanced per-class split (ensures each class appears in train and val)
+
+    # Randomly choose validation classes based on seed
+    numValClasses = int(len(allImages) * valSplit)  # how many classes to include in validation
+    valClasses = random.sample(CLASSES, numValClasses)
+
+    print(f"\nSelected validation classes: {valClasses}\n")
+
     trainImgs, valImgs = [], []
-    
+
     for cls in CLASSES:
         clsImgs = [f for f in allImages if f.upper().startswith(f"CHAR_{cls}")]
-    
         if len(clsImgs) == 0:
             continue
-    
+
         random.shuffle(clsImgs)
-        splitIdx = max(1, int(len(clsImgs) * (1 - valSplit)))
-        trainImgs += clsImgs[:splitIdx]
-        valImgs += clsImgs[splitIdx:]
+
+        # All classes go to train
+        trainImgs += clsImgs
+
+        # Only selected classes are duplicated into val
+        if cls in valClasses:
+            valImgs += clsImgs
 
 
     print(f"\nTotal base images: {len(allImages)}")

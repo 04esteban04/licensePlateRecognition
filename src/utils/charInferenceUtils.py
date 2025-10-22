@@ -7,7 +7,7 @@ import yaml
 from PIL import Image
 
 
-# ---------------- CONFIG ---------------- #
+# CONFIG
 MODEL_NAME = "yolo11n.pt"  # lightweight YOLOv11 model
 MODEL_DIR = Path("./models/yoloCharInference")
 DATASET_DIR = Path("./dataset/yoloCharDataset")
@@ -16,8 +16,7 @@ EPOCHS = 10
 IMG_SIZE = 64
 
 
-# ---------------- UTILITIES ---------------- #
-def cleanDirectories(dirs):
+def cleanDirectories(dirs=OUTPUT_DIRS):
     """Remove specified directories if they exist."""
     for d in dirs:
         path = Path(d)
@@ -108,7 +107,7 @@ def exportModel(model, exportFormat="onnx", project=MODEL_DIR, name="export"):
     return Path(exportPath)
 
 
-def predictImage(model, imagePath, project="../outputs", name="charInference", show=True, crop=True):
+def predictImage(model, imagePath, project="./outputs/charInference", name="inference", show=True):
     """Run inference on a single image, save results, and print predicted labels."""
     print(f"🔍 Predicting: {imagePath}")
     
@@ -127,33 +126,11 @@ def predictImage(model, imagePath, project="../outputs", name="charInference", s
         classes = result.boxes.cls.cpu().numpy().astype(int)
         confidences = result.boxes.conf.cpu().numpy()
 
-        print("\n🔠 Predicted Characters:")
+        print("🔠 Predicted Characters:")
         for cls_id, conf in zip(classes, confidences):
             label = model.names[cls_id]
-            print(f"  - {label} (confidence: {conf:.2f})")
+            print(f"  - {label} (confidence: {conf:.2f})\n")
     else:
         print("⚠️ No characters detected.")
 
-    # ---- OPTIONAL: Save cropped detections ---- #
-    if crop:
-        cropDetections(results, saveDir=Path(project) / "crops")
-
     return results
-
-
-def cropDetections(results, saveDir="outputs/crops"):
-    """Crop detected characters from results and save."""
-    savePath = Path(saveDir)
-    savePath.mkdir(parents=True, exist_ok=True)
-
-    for r in results:
-        imgPath = Path(r.path)
-        img = Image.open(imgPath).convert("RGB")
-
-        boxes = r.boxes.xyxy.cpu().numpy().astype(int)
-        for j, box in enumerate(boxes):
-            x1, y1, x2, y2 = box
-            cropped = img.crop((x1, y1, x2, y2))
-            cropFileName = savePath / f"{imgPath.stem}_{j}.png"
-            cropped.save(cropFileName)
-            print(f"🖼️ Saved cropped image: {cropFileName}")

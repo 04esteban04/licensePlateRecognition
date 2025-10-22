@@ -2,9 +2,9 @@ from utils.plateDetectionUtils import loadModel, prepareDataset
 
 if __name__ == "__main__":
     
-    print("Setting up model and dataset...")
+    print("\nSetting up model and dataset...")
     
-    loadModel()
+    loadModel(saveDir="models/yoloPlateDetection")
     prepareDataset("dataset/LicensePlateData")
     
-    print("Setup completed!")
+    print("\nSetup completed!")

@@ -26,16 +26,16 @@ def loadModel(modelName="yolo11n.pt", saveDir="models/test"):
     modelPath = Path(saveDir) / modelName
 
     if modelPath.exists():
-        print(f"Loading local model: {modelPath}")
+        print(f"\nLoading local model: {modelPath}")
         return YOLO(str(modelPath))
     
     else:
-        print(f"Downloading model: {modelName}")
+        print(f"\nDownloading model: {modelName}")
         model = YOLO(modelName)
     
         if Path(modelName).exists():
             shutil.move(modelName, modelPath)
-            print(f"Model saved to: {modelPath}")
+            print(f"\nModel saved to: {modelPath}")
     
         return model
 
@@ -46,7 +46,7 @@ def prepareDataset(localPath="dataset/testDataset"):
     datasetPath = Path(localPath).expanduser().resolve()
   
     if not datasetPath.exists():
-        print(f"Dataset not found in {datasetPath}. Checking Kaggle cache...")
+        print(f"\nDataset not found in {datasetPath}. \nChecking Kaggle cache...")
 
         # Try Kaggle cache/download
         kagglePath = Path(kagglehub.dataset_download("sujaymann/car-number-plate-dataset-yolo-format"))
@@ -57,17 +57,17 @@ def prepareDataset(localPath="dataset/testDataset"):
             # If kagglePath already matches localPath, just reuse it
             if kagglePath.resolve() != datasetPath:
                 shutil.copytree(kagglePath, datasetPath)
-                print(f"Dataset copied from cache to: {datasetPath}")
+                print(f"    Dataset copied from cache to: {datasetPath}")
             else:
-                print(f"Dataset already available in Kaggle cache: {datasetPath}")
+                print(f"    Dataset already available in Kaggle cache: {datasetPath}")
         else:
-            raise FileNotFoundError("Failed to retrieve dataset from Kaggle.")
+            raise FileNotFoundError("\nFailed to retrieve dataset from Kaggle.")
 
 
     # Fix double nested folder problem
     nestedPath = datasetPath / "License-Plate-Data"
     if nestedPath.exists() and (nestedPath / "data.yaml").exists():
-        print("Fixing nested folder structure...")
+        print("\nFixing nested folder structure...")
 
         for item in nestedPath.iterdir():
             shutil.move(str(item), str(datasetPath))
@@ -77,10 +77,10 @@ def prepareDataset(localPath="dataset/testDataset"):
 
     yamlFiles = list(datasetPath.rglob("data.yaml"))
     if not yamlFiles:
-        raise FileNotFoundError(f"data.yaml not found in {datasetPath}")
+        raise FileNotFoundError(f"  data.yaml not found in {datasetPath}")
 
     dataYaml = yamlFiles[0]
-    print(f"Dataset ready at: {dataYaml}")
+    print(f"\nDataset ready at: {dataYaml}")
 
     with open(dataYaml, "r") as f:
         data = yaml.safe_load(f)

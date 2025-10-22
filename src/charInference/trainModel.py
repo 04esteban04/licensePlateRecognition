@@ -1,8 +1,9 @@
-from utils.charInferenceUtils import loadModel, prepareDataset, trainModel, evaluateModel, exportModel
+from utils.charInferenceUtils import cleanDirectories, loadModel, prepareDataset, trainModel, evaluateModel, exportModel
 
 if __name__ == "__main__":
     
-    cleanDirectories(OUTPUT_DIRS)
+    # Clean previous directories
+    cleanDirectories()
 
     # Load YOLO model
     model = loadModel()

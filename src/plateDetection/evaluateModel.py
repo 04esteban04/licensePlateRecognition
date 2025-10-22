@@ -6,6 +6,6 @@ if __name__ == "__main__":
     dataYaml, _ = prepareDataset("dataset/LicensePlateData")
 
     print("\n Evaluating model... \n")
-    metrics = evaluateModel(model, data=dataYaml)
+    metrics = evaluateModel(model, data=dataYaml, project="models/yoloPlateDetection")
 
     print("\n Validation metrics: \n", metrics)

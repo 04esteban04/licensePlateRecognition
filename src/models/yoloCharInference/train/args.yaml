@@ -12,7 +12,7 @@ save_period: -1
 cache: false
 device: '0'
 workers: 2
-project: ..\models\yoloCharInference
+project: models\yoloCharInference
 name: train
 exist_ok: true
 pretrained: true

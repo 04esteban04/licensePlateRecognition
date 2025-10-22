@@ -13,7 +13,7 @@ def readImage(imagePath):
     return img
 
 
-def detectRedColor(img, threshold=0.01):
+def detectRedColor(img, threshold=0.1):
     """
     Detects whether an image (such as a license plate with a white background and red text)
     contains a significant amount of red color.
@@ -228,4 +228,4 @@ def detectCharacters(imagePath):
     # Crop and save each detected character
     saveDir = saveCharacterCrops(outputImg, filteredContours, imagePath)
 
-    return filteredContours, inputImgWithBoxes, outputImg, resizedImg
+    return filteredContours, inputImgWithBoxes, outputImg, resizedImg, isRedPlate

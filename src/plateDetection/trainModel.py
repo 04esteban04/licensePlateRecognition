@@ -1,7 +1,10 @@
-from utils.plateDetectionUtils import loadModel, prepareDataset, trainModel, evaluateModel, exportModel
+from utils.plateDetectionUtils import cleanDirectories, loadModel, prepareDataset, trainModel, evaluateModel, exportModel
 
 if __name__ == "__main__":
     
+    # Clean previous outputs
+    cleanDirectories(dirs=["models/yoloPlateDetection"])
+
     # Load yolo default model
     model = loadModel(saveDir="./models/yoloPlateDetection")
 
@@ -11,14 +14,14 @@ if __name__ == "__main__":
     #Update model classes to match dataset
     model.model.names = dataDict["names"]
     model.model.nc = dataDict["nc"]
-    print(f"\nModel classes set: {model.model.names}, nc={model.model.nc}  \n")
+    print(f"\nModel classes set: {model.model.names}, nc={model.model.nc}")
     
-    print(f"Training model with classes: {model.model.names}\n")
+    print(f"\nTraining model with classes: {model.model.names}\n")
     
     # Train model
     trainResults = trainModel(model, data=dataYaml, project="models/yoloPlateDetection", epochs=10, imgsz=640)
     
-    print("Training completed!\n")
+    print("\nTraining completed!\n")
 
     # Evaluate
     metrics = evaluateModel(model, data=dataYaml, project="models/yoloPlateDetection")

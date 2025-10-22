@@ -20,10 +20,11 @@ if __name__ == "__main__":
     imagePath = args.imagePath
 
     # Run char detection
-    contours, inputImgWithBoxes, resultImg, resizedImg = detectCharacters(imagePath)
+    contours, inputImgWithBoxes, resultImg, resizedImg, isRedPlate = detectCharacters(imagePath)
 
     print(f"\nDetected {len(contours)} character bounding boxes.\n")
     print("Bounding boxes:", contours, "\n")
+    print(f"Is red plate: {isRedPlate[0]} with ratio {isRedPlate[1]:.4f}\n")
 
     # Display results
     cv2.imshow("Input image with bounding boxes", inputImgWithBoxes)
