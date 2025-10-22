@@ -114,6 +114,7 @@ def predictImage(model, imagePath, project="./outputs/charInference", name="infe
     # Run inference
     results = model.predict(source=imagePath, project=project, name=name, save=True, verbose=False)
     result = results[0]  # take first result (since source is one image)
+    label = None
     
     # Show prediction
     if show:
@@ -133,4 +134,4 @@ def predictImage(model, imagePath, project="./outputs/charInference", name="infe
     else:
         print("⚠️ No characters detected.")
 
-    return results
+    return results, label

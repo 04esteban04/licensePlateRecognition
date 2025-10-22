@@ -71,5 +71,12 @@ if __name__ == "__main__":
 
         print("\n---\n")
 
+        # Run inference on each cropped character image
+        labels = []
         for i in range(1, 7):
-            charUtils.predictImage(charModel, imagePath=f"./outputs/charCrops/carplate/char_{i}.png", show=False)    
+            results, label = charUtils.predictImage(charModel, imagePath=f"./outputs/charCrops/carplate/char_{i}.png", show=False)    
+            labels.append(label)
+        
+        plateNumber = "".join(labels)
+
+        print(f"\n Predicted License Plate Number: {plateNumber} \n")
