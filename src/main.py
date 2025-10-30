@@ -72,9 +72,24 @@ if __name__ == "__main__":
         print("\n---\n")
 
         # Run inference on each cropped character image
+        
         labels = []
-        for i in range(1, 7):
-            results, label = charUtils.predictImage(charModel, imagePath=f"./outputs/charCrops/carplate/char_{i}.png", show=False)    
+
+        if isRedPlate[0]:
+            start_idx = max(1, len(contours) - 5)
+            end_idx = len(contours) + 1
+            labels.insert(0, "C")
+            labels.insert(1, "L")
+        else:
+            start_idx = 1
+            end_idx = len(contours) + 1
+
+        for i in range(start_idx, end_idx):
+            results, label = charUtils.predictImage(
+                charModel, 
+                imagePath=f"./outputs/charCrops/carplate/char_{i}.png", 
+                show=False
+            )
             labels.append(label)
         
         plateNumber = "".join(labels)
