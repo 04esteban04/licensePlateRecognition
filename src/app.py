@@ -27,6 +27,14 @@ from datetime import datetime
 from PIL import Image as PILImage
 from reportlab.platypus import Image
 
+from utils.userInterfaceUtils import (
+    detectPlate,
+    segmentCharacters,
+    inferCharacters,
+    collectOutputImages,
+    saveLastResult
+)
+
 
 # Configuration
 UPLOAD_FOLDER = 'uploads'
@@ -95,6 +103,52 @@ def resetUploadFolder():
         shutil.rmtree(folder)
     os.makedirs(folder)
 
+# Calculate precisions
+def calculatePrecisions(plateDetection, charPrecisions):
+    """
+    Safely calculate plate detection precision and mean precision across
+    plate and character detections.
+
+    Args:
+        plateDetection (ultralytics.engine.results.Results): YOLO plate detection result.
+        charPrecisions (list[float]): List of individual character confidences (0–1 range).
+
+    Returns:
+        float: meanPrecision
+    """
+    plateDetectionPrecision = None
+    meanPrecision = None
+
+    try:
+        # --- Plate detection precision ---
+        if (
+            plateDetection
+            and plateDetection[0].boxes is not None
+            and getattr(plateDetection[0].boxes, "conf", None) is not None
+            and len(plateDetection[0].boxes.conf) > 0
+        ):
+            plateDetectionPrecision = float(plateDetection[0].boxes.conf.max())
+            print(f"Prediction precision (plate): {plateDetectionPrecision:.4f}")
+        else:
+            print("⚠️ No valid plate confidence found.")
+
+        # --- Character precision (from list) ---
+        if charPrecisions and len(charPrecisions) > 0:
+            meanPrecision = ((plateDetectionPrecision or 0) + sum(charPrecisions)) / (
+                len(charPrecisions) + (1 if plateDetectionPrecision is not None else 0)
+            )
+            meanPrecision *= 100
+            print(f"\n🔹 Mean precision: {meanPrecision:.4f}")
+        else:
+            print("⚠️ No character detections found.")
+
+    except Exception as e:
+        print(f"⚠️ Error while extracting precisions: {e}")
+        plateDetectionPrecision = None
+        meanPrecision = None
+
+    return meanPrecision
+
 # Context processor to inject current year into templates
 @app.context_processor
 def inject_now():
@@ -112,153 +166,117 @@ def serve_output_file(filename):
     output_folder = app.config['OUTPUT_FOLDER']
     return send_from_directory(output_folder, filename)
 
-# Process default dataset
+# Process default image
 @app.route("/process/default", methods=["POST"])
-def process_default():
-    resetUploadFolder()
-    processDefaultDataset()
-    testWithDefaultDataset()
-
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    csv_path = os.path.join(base_dir, "nn", "outputModel", "test", "allPredictions_customDataset.csv")
-    
-    if not os.path.exists(csv_path):
-        return jsonify({
-            "error": "Default prediction CSV file not found."
-        }), 404
-
+def processDefault():
     try:
-        df = pd.read_csv(csv_path)
-        results = df.to_dict(orient="records")
-        return jsonify({
-            "message": "Default dataset was processed.",
-            "results": results
-        }), 200
+        # Use a fixed image path instead of uploaded file
+        baseDir = os.path.dirname(os.path.abspath(__file__))
+        imagePath = os.path.join(baseDir, "assets/testImages", "carplate.png")
+        filename = os.path.basename(imagePath)
+
+        if not os.path.exists(imagePath):
+            return jsonify({"error": f"Fixed image not found at {imagePath}"}), 404
+
+        # Reset and prepare environment
+        plateUtils.cleanDirectories()
+        resetUploadFolder()
+
+        # Detect plate
+        plateDetection, plateCropPath = detectPlate(plateDetectionModel, imagePath, PLATE_CROPS_FOLDER)
+        if not plateCropPath:
+            return jsonify({"error": "No license plate detected."}), 400
+
+        # Segment characters
+        contours, isRed = segmentCharacters(plateCropPath)
+        if not contours:
+            return jsonify({"error": "No characters detected on the license plate."}), 400
+
+        # Infer characters
+        charInferenceResults, plateNumber = inferCharacters(
+            charModel, contours, filename, CHAR_CROPS_FOLDER, isRed
+        )
+
+        # Get precisions
+        meanPrecision = calculatePrecisions(plateDetection, charInferenceResults)
+        print(f"\n Final Mean Precision: {meanPrecision:.4f}%")
+
+        # Collect output images
+        images = collectOutputImages(filename, Path(filename).suffix)
+
+        # Build result data
+        resultData = {
+            "message": "Image processed successfully!",
+            "predictedPlateNumber": plateNumber,
+            "images": images,
+            "originalFilename": filename,
+            "timestamp": datetime.now().isoformat(),
+            "meanPrecision": f"{meanPrecision:.4f}"
+        }
+
+        # Save last result
+        saveLastResult(app.config["OUTPUT_FOLDER"], resultData)
+
+        return jsonify(resultData), 200
 
     except Exception as e:
-        return jsonify({
-            "error": f"Failed to read predictions: {str(e)}"
-        }), 500
+        return jsonify({"error": f"Failed to process image TEST: {str(e)}"}), 500
 
-# Process individual image
+# Process uploaded image
 @app.route("/process/image", methods=["POST"])
-def process_image():
-
+def processImage():
     try:
-
-        file = request.files.get('file')
-
+        file = request.files.get("file")
         if not file or not allowedFile(file.filename):
             return jsonify({"error": "Unsupported or missing file."}), 400
 
-        # Clean folders before running
+        # Reset and prepare environment
         plateUtils.cleanDirectories()
         resetUploadFolder()
-        
+
         filename = secure_filename(file.filename)
-        path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(path)
+        imagePath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+        file.save(imagePath)
 
-        # Detect plate on input image
-        print("\n---\n")
-        isPlateDetected = plateUtils.predictImage(plateDetectionModel, path, show=False)
-        
-        
-        if len(isPlateDetected[0].boxes) == 0:
-            return jsonify({
-                "error": "No license plate detected in the input image."
-            }), 400
+        # Detect plate
+        plateDetection, plateCropPath = detectPlate(plateDetectionModel, imagePath, PLATE_CROPS_FOLDER)
+        if not plateCropPath:
+            return jsonify({"error": "No license plate detected."}), 400
 
-        
-        #------------------------------- #
-        # Character Segmentation
-        #------------------------------- #
-        
-        # Detect characters on cropped plate image
-        contours, inputImgWithBoxes, resultImg, resizedImg, isRedPlate = detectCharacters(os.path.join(PLATE_CROPS_FOLDER, filename))
+        # Segment characters
+        contours, isRed = segmentCharacters(plateCropPath)
+        if not contours:
+            return jsonify({"error": "No characters detected on the license plate."}), 400
 
-        print(f"\nDetected {len(contours)} character bounding boxes.\n")
-        print("Bounding boxes:", contours, "\n")
-        print(f"Is plate red: {isRedPlate[0]} (ratio {isRedPlate[1]:.4f}) \n")
+        # Infer characters
+        charInferenceResults, plateNumber = inferCharacters(
+            charModel, contours, filename, CHAR_CROPS_FOLDER, isRed
+        )
 
-        if len(contours) == 0:
-            return jsonify({
-                "error": "No characters detected on the license plate."
-            }), 400
-        
+        # Get precisions
+        meanPrecision = calculatePrecisions(plateDetection, charInferenceResults)
+        print(f"\n Final Mean Precision: {meanPrecision:.4f}%")
 
-        # Run inference on each cropped character image
-        labels = []
+        # Collect output images
+        images = collectOutputImages(filename, Path(filename).suffix)
 
-        if isRedPlate[0]:
-            start_idx = max(1, len(contours) - 5)
-            end_idx = len(contours) + 1
-            labels.insert(0, "C")
-            labels.insert(1, "L")
-        else:
-            start_idx = 1
-            end_idx = len(contours) + 1
-
-        file_stem = Path(filename).stem
-        file_ext = Path(filename).suffix
-
-        for i in range(start_idx, end_idx):
-            
-            char_path = Path(CHAR_CROPS_FOLDER) / file_stem / f"char_{i}{file_ext}"
-
-            results, label = charUtils.predictImage(
-                charModel, 
-                imagePath=str(char_path),
-                show=False
-            )
-
-            labels.append(label)
-       
-        plateNumber = "".join(labels)
-
-        print(f"\n Predicted License Plate Number: {plateNumber} \n")
-
-
-
-        images = {
-            "detected_plate": f"/outputs/plateDetection/{filename}",
-            "cropped_plate": f"/outputs/plateCrop/{filename}",
-            "segmentation_boxes": "/outputs/segmentationResults/result_inputWithBoxes.png",
-            "segmentation_threshold": "/outputs/segmentationResults/result_threshWithBoxes.png",
-        }
-
-        # Add the character inference images
-        char_inference_urls = []
-        char_inference_dir = Path("outputs/charInference")
-
-        for subdir in char_inference_dir.glob("inference*"):
-            for img_path in subdir.glob(f"char_*{file_ext}"):
-                rel_path = img_path.relative_to("outputs")
-                char_inference_urls.append(f"/outputs/{rel_path.as_posix()}")
-
-        images["char_inference"] = char_inference_urls
-
-        result_data = {
+        # Build result data
+        resultData = {
             "message": "Image processed successfully!",
-            "predicted_plate_number": plateNumber,
+            "predictedPlateNumber": plateNumber,
             "images": images,
-            "original_filename": filename,
-            "timestamp": datetime.now().isoformat()
+            "originalFilename": filename,
+            "timestamp": datetime.now().isoformat(),
+            "meanPrecision": f"{meanPrecision:.4f}"
         }
 
-        # Save last result to a temp json file
-        temp_result_path = os.path.join(app.config['OUTPUT_FOLDER'], "last_result.json")
-        os.makedirs(os.path.dirname(temp_result_path), exist_ok=True)
+        # Save last result
+        saveLastResult(app.config["OUTPUT_FOLDER"], resultData)
 
-        with open(temp_result_path, "w", encoding="utf-8") as f:
-            json.dump(result_data, f, indent=4, ensure_ascii=False)
-
-        return jsonify(result_data), 200
+        return jsonify(resultData), 200
 
     except Exception as e:
-        return jsonify({
-            "error": f"Failed to read predictions: {str(e)}"
-        }), 500
+        return jsonify({"error": f"Failed to process image: {str(e)}"}), 500
 
 # Export PDF report for last processed image
 @app.route('/export-pdf', methods=['GET'])
@@ -293,9 +311,9 @@ def generate_single_image_pdf(data):
         styles = getSampleStyleSheet()
         elements = []
 
-        plate_number = data.get("predicted_plate_number", "N/A")
+        plate_number = data.get("predictedPlateNumber", "N/A")
         images = data.get("images", {})
-        file_name = data.get("original_filename", "Unknown")
+        file_name = data.get("originalFilename", "Unknown")
         process_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # === Title and Metadata ===
@@ -337,13 +355,13 @@ def generate_single_image_pdf(data):
                 elements.append(Spacer(1, 12))
 
         # === Add main images ===
-        add_image("Detected Plate", images.get("detected_plate"), is_first=True)
-        add_image("Cropped Plate", images.get("cropped_plate"))
-        add_image("Segmentation (with Boxes)", images.get("segmentation_boxes"))
-        add_image("Segmentation (Threshold)", images.get("segmentation_threshold"))
+        add_image("Detected Plate", images.get("detectedPlate"), is_first=True)
+        add_image("Cropped Plate", images.get("croppedPlate"))
+        add_image("Segmentation (with Boxes)", images.get("segmentationBoxes"))
+        add_image("Segmentation (Threshold)", images.get("segmentationThreshold"))
 
         # === Detected Characters Section ===
-        chars = images.get("char_inference", [])
+        chars = images.get("charInference", [])
         if chars:
             elements.append(Paragraph("<b>Detected Characters</b>", styles["Heading3"]))
             elements.append(Spacer(1, 8))

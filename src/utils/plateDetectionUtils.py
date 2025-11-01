@@ -126,18 +126,33 @@ def exportModel(model, export_format="onnx", project="models/yolo", name="export
     return Path(export_path)
 
 
-def predictImage(model, image_url, show=True, project="outputs", name="plateDetection", crop=True):
+def predictImage(model, imageUrl, show=True, project="outputs", name="plateDetection", crop=True):
     """ Run inference on a single image and save results."""
     
-    results = model.predict(source=image_url, project=project, name=name, save=True)
+    # Detect original file extension
+    originalExt = Path(imageUrl).suffix.lower()
+    
+    # Run inference
+    results = model.predict(source=imageUrl, project=project, name=name, save=True)
+
     if show:
         results[0].show()
-
-    print(f"Predictions saved to: {Path(project) / name}")
-
+    
+    saveDir = Path(project) / name
+    print(f"Predictions saved to: {saveDir}")
+    
+    # Ensure crops or detections keep same extension
     if crop:
         cropPlates(results)
+    
+    # Rename the image to use the same extension as the original file
+    for imgFile in saveDir.glob("*.*"):
+        newName = imgFile.with_suffix(originalExt)
+        if newName != imgFile:
+            shutil.move(str(imgFile), str(newName))
+            print(f"Renamed {imgFile.name} → {newName.name}")
 
+    print('type(results)', type(results))
     return results
 
 

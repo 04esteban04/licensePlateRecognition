@@ -135,3 +135,29 @@ def predictImage(model, imagePath, project="./outputs/charInference", name="infe
         print("⚠️ No characters detected.")
 
     return results, label
+
+
+def renameInferenceOutputs(baseDir, fileExt):
+    """Rename inference output images in all 'inference*' folders by keeping the same name and only changing the extension."""
+    
+    projectPath = Path(baseDir)
+    inferenceDirs = sorted(projectPath.glob("inference*"), key=lambda d: d.stat().st_mtime)
+
+    if not inferenceDirs:
+        print("⚠️ No inference folders found.")
+        return
+
+    print(f"✅ Target extension: {fileExt}")
+
+    for infDir in inferenceDirs:
+        print(f"\n📁 Checking folder: {infDir}")
+
+        imageFiles = list(infDir.glob("*.*"))
+        if not imageFiles:
+            print(f"⚠️ No images found in {infDir}")
+            continue
+
+        for imgFile in imageFiles:
+            newName = imgFile.with_suffix(fileExt)
+            shutil.move(str(imgFile), str(newName))
+            print(f"✅ Renamed {imgFile.name} → {newName.name}")

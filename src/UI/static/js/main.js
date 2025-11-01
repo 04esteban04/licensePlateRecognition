@@ -183,32 +183,32 @@ document.addEventListener("DOMContentLoaded", () => {
 						col.innerHTML = `
 							<div class="card about-card h-100 shadow-sm">
 								<div class="card-body text-center">
-									<h5 class="card-title mb-3">Predicted Plate: ${result.predicted_plate_number}</h5>
+									<h5 class="card-title mb-3">Predicted Plate: ${result.predictedPlateNumber}</h5>
 									<hr>
 									<div class="d-flex flex-column align-items-center">
 										<h6 class="text-white mb-2">Detected Plate</h6>
-										<img src="${result.images.detected_plate}" 
+										<img src="${result.images.detectedPlate}" 
 											alt="Detected Plate" 
 											class="card-img-top rounded mb-2" 
 											style="max-width: 300px; object-fit: contain;"
 										>
 										
 										<h6 class="text-white mb-2">Cropped Plate</h6>
-										<img src="${result.images.cropped_plate}" 
+										<img src="${result.images.croppedPlate}" 
 											alt="Cropped Plate" 
 											class="card-img-top rounded mb-2" 
 											style="max-width: 300px; object-fit: contain;"
 										>
 
 										<h6 class="text-white mb-2">Segmentation with Boxes</h6>
-										<img src="${result.images.segmentation_boxes}" 
+										<img src="${result.images.segmentationBoxes}" 
 											alt="Segmentation with Boxes" 
 											class="card-img-top rounded mb-2" 
 											style="max-width: 300px; object-fit: contain;"
 										>
 
-										<h6 class="text-white mb-2">Segmentation Threshold</h6>
-										<img src="${result.images.segmentation_threshold}" 
+										<h6 class="text-white mb-2">Binary Plate </h6>
+										<img src="${result.images.segmentationThreshold}" 
 											alt="Segmentation Threshold" 
 											class="card-img-top rounded mb-2" 
 											style="max-width: 300px; object-fit: contain;"
@@ -217,12 +217,12 @@ document.addEventListener("DOMContentLoaded", () => {
 									</div>
 
 									${
-										result.images.char_inference?.length
+										result.images.charInference?.length
 											? `
 												<hr>
 												<h6>Detected Characters:</h6>
 												<div class="d-flex flex-wrap justify-content-center gap-2 mt-2">
-													${result.images.char_inference
+													${result.images.charInference
 														.map(url => `<img src="${url}" class="border rounded" 
 																		style="width:60px;height:60px;object-fit:contain;">`)
 														.join("")}
@@ -239,11 +239,20 @@ document.addEventListener("DOMContentLoaded", () => {
 						// === TABLE VIEW ===
 						const row = document.createElement("tr");
 						row.innerHTML = `
-							<td><img src="${result.images.detected_plate}" alt="Detected Plate" class="img-thumbnail" style="max-width: 100px;"></td>
-							<td><img src="${result.images.cropped_plate}" alt="Cropped Plate" class="img-thumbnail" style="max-width: 100px;"></td>
-							<td><img src="${result.images.segmentation_boxes}" alt="Segmentation Boxes" class="img-thumbnail" style="max-width: 100px;"></td>
-							<td><img src="${result.images.segmentation_threshold}" alt="Segmentation Threshold" class="img-thumbnail" style="max-width: 100px;"></td>
-							<td>${result.predicted_plate_number}</td>
+							<td><img src="${result.images.detectedPlate}" alt="Detected Plate" class="img-thumbnail" style="max-width: 100px;"></td>
+							<td><img src="${result.images.croppedPlate}" alt="Cropped Plate" class="img-thumbnail" style="max-width: 100px;"></td>
+							<td><img src="${result.images.segmentationThreshold}" alt="Segmentation Threshold" class="img-thumbnail" style="max-width: 100px;"></td>
+							<td><img src="${result.images.segmentationBoxes}" alt="Segmentation Boxes" class="img-thumbnail" style="max-width: 100px;"></td>
+							<td>
+								<div class="d-flex flex-wrap justify-content-center gap-2 mt-2">
+									${result.images.charInference
+										.map(url => `<img src="${url}" class="border rounded" 
+														style="width:60px;height:60px;object-fit:contain;">`)
+										.join("")}
+								</div>
+							</td>
+							<td>${result.predictedPlateNumber}</td>
+							<td>${result.meanPrecision}</td>
 						`;
 						resultTableBody.appendChild(row);
 
@@ -314,90 +323,115 @@ document.addEventListener("DOMContentLoaded", () => {
 			});
 
 			const result = await response.json();
+			
 			if (response.ok) {
-				showMessage(result.message || "Default dataset processed.");
+				
+				showMessage(result.message || "Default image processed successfully.");
 
-				// Clear old cards
+				// === Clear previous results ===
 				resultCardGrid.innerHTML = "";
 				resultTableBody.innerHTML = "";
 
-				if (result.results && result.results.length > 0) {
-
-					// Show results
+				// === Check if images exist ===
+				if (result.images) {
 					results.classList.remove("d-none");
 
-					result.results.forEach(item => {
+					// === CARD VIEW ===
+					const col = document.createElement("div");
+					col.classList.add("col");
 
-						// Card view
-						const col = document.createElement("div");
-						col.classList.add("col");
+					col.innerHTML = `
+						<div class="card about-card h-100 shadow-sm">
+							<div class="card-body text-center">
+								<h5 class="card-title mb-3">Predicted Plate: ${result.predictedPlateNumber}</h5>
+								<hr>
+								<div class="d-flex flex-column align-items-center">
+									<h6 class="text-white mb-2">Detected Plate</h6>
+									<img src="${result.images.detectedPlate}" 
+										alt="Detected Plate" 
+										class="card-img-top rounded mb-2" 
+										style="max-width: 300px; object-fit: contain;"
+									>
+									
+									<h6 class="text-white mb-2">Cropped Plate</h6>
+									<img src="${result.images.croppedPlate}" 
+										alt="Cropped Plate" 
+										class="card-img-top rounded mb-2" 
+										style="max-width: 300px; object-fit: contain;"
+									>
 
-						col.innerHTML = `
-							<div class="card about-card h-100 shadow-sm card-image-wrapper">
-								<img src="/preprocessed_images/${item["Image name"]}" class="card-img-top mt-2 card-image" alt="${item["Image name"]}">
-								<div class="card-body text-center d-flex flex-column justify-content-center align-items-center">
-									<h5 class="card-title mb-2">File: ${item["Image name"]}</h5>
-									<hr>
-									<table class="table table-bordered table-striped table-dark text-light table-hover">
-										<tbody>
-											<tr>
-												<th scope="row">Real class:</th>
-												<td>${item["Real value"]}</td>
-											</tr>
-											<tr>
-												<th scope="row">Predicted class:</th>
-												<td>${item["Predicted"]}</td>
-											</tr>
-											<tr>
-												<th scope="row">Accuracy:</th>
-												<td>${item["Prob (%)"]}%</td>
-											</tr>
-											<tr>
-												<th scope="row">Prediction correct?</th>
-												<td class="${item["Is prediction correct?"] === '✔️' ? 'text-success' : 'text-danger'}">
-													${item["Is prediction correct?"]}
-												</td>
-											</tr>
-										</tbody>
-									</table>
+									<h6 class="text-white mb-2">Segmentation with Boxes</h6>
+									<img src="${result.images.segmentationBoxes}" 
+										alt="Segmentation with Boxes" 
+										class="card-img-top rounded mb-2" 
+										style="max-width: 300px; object-fit: contain;"
+									>
+
+									<h6 class="text-white mb-2">Segmentation Threshold</h6>
+									<img src="${result.images.segmentationThreshold}" 
+										alt="Segmentation Threshold" 
+										class="card-img-top rounded mb-2" 
+										style="max-width: 300px; object-fit: contain;"
+									>
+
 								</div>
+
+								${
+									result.images.charInference?.length
+										? `
+											<hr>
+											<h6>Detected Characters:</h6>
+											<div class="d-flex flex-wrap justify-content-center gap-2 mt-2">
+												${result.images.charInference
+													.map(url => `<img src="${url}" class="border rounded" 
+																	style="width:60px;height:60px;object-fit:contain;">`)
+													.join("")}
+											</div>
+										`
+										: ""
+								}
 							</div>
-						`;
+						</div>
+					`;
 
-						resultCardGrid.appendChild(col);
+					resultCardGrid.appendChild(col);
 
-						// Table view
-						const row = document.createElement("tr");
-
-						row.innerHTML = `
-							<td><img src="/preprocessed_images/${item["Image name"]}" alt="${item["Image name"]}" class="img-thumbnail" style="max-width: 100px;"></td>
-							<td>${item["Image name"]}</td>
-							<td>${item["Real value"]}</td>
-							<td>${item["Predicted"]}</td>
-							<td>${item["Prob (%)"]}%</td>
-							<td class="${item["Is prediction correct?"] === '✔️' ? 'text-success' : 'text-danger'}">
-								${item["Is prediction correct?"]}
+					// === TABLE VIEW ===
+					const row = document.createElement("tr");
+					row.innerHTML = `
+							<td><img src="${result.images.detectedPlate}" alt="Detected Plate" class="img-thumbnail" style="max-width: 100px;"></td>
+							<td><img src="${result.images.croppedPlate}" alt="Cropped Plate" class="img-thumbnail" style="max-width: 100px;"></td>
+							<td><img src="${result.images.segmentationThreshold}" alt="Segmentation Threshold" class="img-thumbnail" style="max-width: 100px;"></td>
+							<td><img src="${result.images.segmentationBoxes}" alt="Segmentation Boxes" class="img-thumbnail" style="max-width: 100px;"></td>
+							<td>
+								<div class="d-flex flex-wrap justify-content-center gap-2 mt-2">
+									${result.images.charInference
+										.map(url => `<img src="${url}" class="border rounded" 
+														style="width:60px;height:60px;object-fit:contain;">`)
+										.join("")}
+								</div>
 							</td>
-						`;
-
-						resultTableBody.appendChild(row);
-					});
+							<td>${result.predictedPlateNumber}</td>
+							<td>${result.meanPrecision}</td>
+					`;
+					resultTableBody.appendChild(row);
 
 					resultCardContainer.classList.remove("d-none");
 
 					showSuccessCheck(processDefaultBtn);
 
 				} else {
-					showMessage("No results found.");
+					showMessage("No images returned from the server.", true);
 				}
-
-				resetLoadingButtons(); 
-
+ 
 			} else {
 				showMessage(result.error || "An error occurred.", true);
 			}
 		} catch (error) {
-			showMessage("Failed to process default dataset: " + error.message, true);
+			showMessage("Failed to process default image: " + error.message, true);
+		}
+		finally {
+			resetLoadingButtons(); 
 		}
 	});
 
