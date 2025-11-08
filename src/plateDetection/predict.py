@@ -18,7 +18,7 @@ if __name__ == "__main__":
     print(f"Model classes set: {model.model.names}, nc={model.model.nc}")
 
     # Predict
-    predictImage(model, "./assets/testImages/bus.jpg")
+    predictImage(model, "./assets/testImages/test-noPlate.jpg")
     predictImage(model, "./assets/testImages/plate.jpeg")
     predictImage(model, "./assets/testImages/plate2.jpg")
 

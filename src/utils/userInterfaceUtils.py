@@ -14,7 +14,7 @@ def detectPlate(model, imagePath, outputCropFolder):
     prediction = plateUtils.predictImage(model, imagePath, show=False)
     
     if len(prediction[0].boxes) == 0:
-        return None
+        return prediction, None
     
     croppedPath = os.path.join(outputCropFolder, os.path.basename(imagePath))
     
@@ -41,6 +41,10 @@ def inferCharacters(model, contours, filename, charCropsFolder, isRedPlate):
         endIdx = len(contours) + 1
         labels.extend(["C", "L"])
     
+    elif (len(contours) > 6):
+        startIdx = len(contours) - 5
+        endIdx = len(contours) + 1
+
     else:
         startIdx = 1
         endIdx = len(contours) + 1
@@ -60,14 +64,16 @@ def inferCharacters(model, contours, filename, charCropsFolder, isRedPlate):
     return charInferenceResults, "".join(labels)
 
 
-def collectOutputImages(filename, fileExt):
+def collectOutputImages(file, fileExt):
     """Collects all relevant output image paths for the response."""
     
+    filename = Path(file).stem
+
     images = {
-        "detectedPlate": f"/outputs/plateDetection/{filename}",
-        "croppedPlate": f"/outputs/plateCrop/{filename}",
-        "segmentationBoxes": "/outputs/segmentationResults/result_inputWithBoxes.png",
-        "segmentationThreshold": "/outputs/segmentationResults/result_threshWithBoxes.png",
+        "detectedPlate": f"/outputs/plateDetection/{file}",
+        "croppedPlate": f"/outputs/plateCrop/{file}",
+        "segmentationBoxes": f"/outputs/segmentationResults/{filename}_result_inputWithBoxes.png",
+        "segmentationThreshold": f"/outputs/segmentationResults/{filename}_result_threshWithBoxes.png",
     }
 
     charInferenceUrls = []

@@ -175,7 +175,7 @@ def saveCharacterCrops(img, contours, imagePath, outputRoot="outputs/charCrops",
     return saveDir
 
 
-def saveImages(inputImgWithBoxes, resultImg, resizedImg, outputRoot="outputs/segmentationResults", imagePath=None):
+def saveImages(originalImg, inputImgWithBoxes, resultImg, resizedImg, outputRoot="outputs/segmentationResults", imagePath=None):
     """Save intermediate and final images for visualization."""
     saveDir = Path(outputRoot)
     saveDir.mkdir(parents=True, exist_ok=True)
@@ -185,7 +185,7 @@ def saveImages(inputImgWithBoxes, resultImg, resizedImg, outputRoot="outputs/seg
         baseName = imgPath.stem
         ext = imgPath.suffix if imgPath.suffix else ".png"
     else:
-        baseName = "result"
+        baseName = Path(originalImg).stem + "_result"
         ext = ".png"
 
     inputImgPath = saveDir / f"{baseName}_inputWithBoxes{ext}"
@@ -228,7 +228,7 @@ def detectCharacters(imagePath):
     resizedImg = resizeImage(outputImg)
     
     # Save intermediate and final images
-    saveImages(inputImgWithBoxes, outputImg, resizedImg)
+    saveImages(imagePath, inputImgWithBoxes, outputImg, resizedImg)
 
     # Crop and save each detected character
     saveDir = saveCharacterCrops(outputImg, filteredContours, imagePath)

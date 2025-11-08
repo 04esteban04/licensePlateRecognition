@@ -143,20 +143,22 @@ document.addEventListener("DOMContentLoaded", () => {
 	// Process individual file upload
 	function handleFileFormSubmit(formElement) {
 		formElement.addEventListener("submit", async (e) => {
-			e.preventDefault();
-
-			const fileInput = formElement.querySelector("input[type='file']");
-			const file = fileInput?.files[0];
-
-			if (!file) {
-				showMessage("Please select a file to upload.", true);
-				return;
-			}
-
-			const formData = new FormData();
-			formData.append("file", file);
-
 			try {
+				e.preventDefault();
+
+				messageBox.classList.add("d-none");
+				
+				const fileInput = formElement.querySelector("input[type='file']");
+				const file = fileInput?.files[0];
+
+				if (!file) {
+					showMessage("Please select a file to upload.", true);
+					return;
+				}
+								
+				const formData = new FormData();
+				formData.append("file", file);
+
 				const response = await fetch("/process/image", {
 					method: "POST",
 					body: formData,
@@ -260,17 +262,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
 						const button = formElement.querySelector(".submit-btn");
 						if (button) showSuccessCheck(button);
+						
 					} else {
 						showMessage("No images returned from the server.", true);
-					}
-
-					resetLoadingButtons(); 
+					} 
 
 				} else {
 					showMessage(result.error || "An error occurred during processing.", true);
 				}
-			} catch (error) {
+			} 
+			
+			catch (error) {
 				showMessage("Failed to process file: " + error.message, true);
+			} 
+
+			finally {
+				resetLoadingButtons(); 
 			}
 		});
 	}

@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     # Detect plate on input image
     print("\n---\n")
-    isPlateDetected = plateUtils.predictImage(model, "./assets/testImages/carplate.png", show=False)
+    isPlateDetected = plateUtils.predictImage(model, "./assets/testImages/test-default.png", show=False)
 
 
     # If a license plate is detected, proceed to segmentation and character inference    
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         #------------------------------- #
         
         # Detect characters on cropped plate image
-        contours, inputImgWithBoxes, resultImg, resizedImg, isRedPlate = detectCharacters("./outputs/plateCrop/carplate.png")
+        contours, inputImgWithBoxes, resultImg, resizedImg, isRedPlate = detectCharacters("./outputs/plateCrop/test-default.png")
 
         print(f"\nDetected {len(contours)} character bounding boxes.\n")
         print("Bounding boxes:", contours, "\n")
@@ -87,7 +87,7 @@ if __name__ == "__main__":
         for i in range(start_idx, end_idx):
             results, label = charUtils.predictImage(
                 charModel, 
-                imagePath=f"./outputs/charCrops/carplate/char_{i}.png", 
+                imagePath=f"./outputs/charCrops/test-default/char_{i}.png", 
                 show=False
             )
             labels.append(label)

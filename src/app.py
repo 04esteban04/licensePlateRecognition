@@ -172,7 +172,7 @@ def processDefault():
     try:
         # Use a fixed image path instead of uploaded file
         baseDir = os.path.dirname(os.path.abspath(__file__))
-        imagePath = os.path.join(baseDir, "assets/testImages", "carplate.png")
+        imagePath = os.path.join(baseDir, "assets/testImages", "test-default.png")
         filename = os.path.basename(imagePath)
 
         if not os.path.exists(imagePath):
@@ -240,13 +240,14 @@ def processImage():
 
         # Detect plate
         plateDetection, plateCropPath = detectPlate(plateDetectionModel, imagePath, PLATE_CROPS_FOLDER)
-        if not plateCropPath:
-            return jsonify({"error": "No license plate detected."}), 400
+
+        if plateCropPath is None:
+            return jsonify({"error": "No license plate detected on input image. Please try with a different one."}), 400
 
         # Segment characters
         contours, isRed = segmentCharacters(plateCropPath)
         if not contours:
-            return jsonify({"error": "No characters detected on the license plate."}), 400
+            return jsonify({"error": "No characters detected on the license plate. Please try with another image."}), 400
 
         # Infer characters
         charInferenceResults, plateNumber = inferCharacters(
