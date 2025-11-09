@@ -1,26 +1,17 @@
 from pathlib import Path
 from utils.segmentationUtils import detectCharacters
+import utils.preprocessUtils as preprocessUtils
 import cv2
 import numpy as np
 import argparse
 
 if __name__ == "__main__":
     
-    # Usage: python -m segmentation.detectChar <imagePath>
-
-    # Argument parser 
-    parser = argparse.ArgumentParser(description="Detect characters in an image")
-    parser.add_argument(
-        "imagePath",
-        type=str,
-        help="Path to the image to process"
-    )
-
-    args = parser.parse_args()
-    imagePath = args.imagePath
+    imagePath = "./outputs/plateCrop/test-CLPlate.jpg"
+    inputImg, threshImg, isRedPlate = preprocessUtils.preprocessPlate(imagePath)
 
     # Run char detection
-    contours, inputImgWithBoxes, resultImg, resizedImg, isRedPlate = detectCharacters(imagePath)
+    contours, inputImgWithBoxes, resultImg, resizedImg = detectCharacters(imagePath, inputImg, threshImg)
 
     print(f"\nDetected {len(contours)} character bounding boxes.\n")
     print("Bounding boxes:", contours, "\n")

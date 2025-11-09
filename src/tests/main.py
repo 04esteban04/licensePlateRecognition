@@ -1,8 +1,8 @@
-import utils.plateDetectionUtils as plateUtils
-import utils.charInferenceUtils as charUtils
+import utils.plateDetectionUtils as plateDetectionUtils
+import utils.charInferenceUtils as charInferenceUtils
 import utils.preprocessUtils as preprocessUtils
-from utils.segmentationUtils import detectCharacters
-from charInference.setupDataset import generateYoloCharDataset
+import utils.segmentationUtils as segmentationUtils
+from .charInference.setupDataset import generateYoloCharDataset
 
 
 if __name__ == "__main__":
@@ -12,13 +12,13 @@ if __name__ == "__main__":
     #------------------------------- #
 
     # Clean folders before running
-    plateUtils.cleanDirectories()
+    plateDetectionUtils.cleanDirectories()
 
     # Load model
-    model = plateUtils.loadModel("best.pt", "./models/yoloPlateDetection/train/weights")
+    model = plateDetectionUtils.loadModel("best.pt", "./models/yoloPlateDetection/train/weights")
     
     # Prepare plate recognition dataset
-    data_yaml, data_dict = plateUtils.prepareDataset("dataset/LicensePlateData")
+    data_yaml, data_dict = plateDetectionUtils.prepareDataset("dataset/LicensePlateData")
     
     #Update model classes to match dataset
     model.model.names = data_dict["names"]
@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
     # Detect plate on input image
     print("\n---\n")
-    isPlateDetected = plateUtils.predictImage(model, "./assets/testImages/test-default.png", show=False)
+    isPlateDetected = plateDetectionUtils.predictImage(model, "./assets/testImages/test-default.png", show=False)
 
 
     # If a license plate is detected, proceed to segmentation and character inference    
@@ -55,7 +55,7 @@ if __name__ == "__main__":
         #------------------------------- #
         
         # Detect characters on cropped plate image
-        contours, inputImgWithBoxes, resultImg, resizedImg = detectCharacters(
+        contours, inputImgWithBoxes, resultImg, resizedImg = segmentationUtils.detectCharacters(
             imagePath,
             inputImg,
             threshImg
@@ -71,10 +71,10 @@ if __name__ == "__main__":
         #------------------------------- #
 
         # Load char inference model
-        charModel = charUtils.loadModel("best.pt", "./models/yoloCharInference/train/weights")
+        charModel = charInferenceUtils.loadModel("best.pt", "./models/yoloCharInference/train/weights")
 
         # Prepare dataset
-        charDataYaml, charDataDict = charUtils.prepareDataset()
+        charDataYaml, charDataDict = charInferenceUtils.prepareDataset()
 
         #Update charModel classes to match dataset
         charModel.model.names = charDataDict["names"]
@@ -97,7 +97,7 @@ if __name__ == "__main__":
             end_idx = len(contours) + 1
 
         for i in range(start_idx, end_idx):
-            results, label = charUtils.predictImage(
+            results, label = charInferenceUtils.predictImage(
                 charModel, 
                 imagePath=f"./outputs/charCrops/test-default/char_{i} (test-default).png", 
                 show=False
