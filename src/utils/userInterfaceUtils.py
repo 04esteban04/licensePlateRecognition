@@ -50,7 +50,7 @@ def inferCharacters(model, contours, filename, charCropsFolder, isRedPlate):
         endIdx = len(contours) + 1
 
     for i in range(startIdx, endIdx):
-        charPath = Path(charCropsFolder) / fileStem / f"char_{i}{fileExt}"
+        charPath = Path(charCropsFolder) / fileStem / f"char_{i} ({fileStem}){fileExt}"
         result, label = charUtils.predictImage(model, imagePath=str(charPath), show=False)
         
         print('result: ', result)
@@ -81,7 +81,7 @@ def collectOutputImages(file, fileExt):
     
     for subdir in charInferenceDir.glob("inference*"):
     
-        for imgPath in subdir.glob(f"char_*{fileExt}"):
+        for imgPath in subdir.glob(f"char_* ({filename}){fileExt}"):
     
             relPath = imgPath.relative_to("outputs")
             charInferenceUrls.append(f"/outputs/{relPath.as_posix()}")

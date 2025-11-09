@@ -168,7 +168,7 @@ def saveCharacterCrops(img, contours, imagePath, outputRoot="outputs/charCrops",
             squareImg = cv2.morphologyEx(squareImg, cv2.MORPH_CLOSE, kernel)
        
         # Save processed character
-        cropFile = saveDir / f"char_{i}{ext}"
+        cropFile = saveDir / f"char_{i} ({folderName}){ext}"
         cv2.imwrite(str(cropFile), squareImg)
         print(f"Saved processed character: {cropFile}")
 

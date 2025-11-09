@@ -19,24 +19,6 @@ if __name__ == "__main__":
 
     # Predict
     predictImage(model, "./assets/testImages/test-noPlate.jpg")
-    predictImage(model, "./assets/testImages/plate.jpeg")
-    predictImage(model, "./assets/testImages/plate2.jpg")
+    predictImage(model, "./assets/info/plate.jpeg")
+    predictImage(model, "./assets/info/plate2.jpg")
 
-
-    """ 
-    if len(sys.argv) < 2:
-        print("Usage: python predict.py <image_path>")
-        sys.exit(1)
-
-    imagePath = Path(sys.argv[1]).expanduser().resolve()
-    
-    if not imagePath.exists():
-        print(f"Error: Image not found at {imagePath}")
-        sys.exit(1)
-
-    model = loadModel()
-    
-    print(f"Running prediction on {imagePath}...")
-    cleanDirectories()
-    predictImage(model, str(imagePath))
-    """

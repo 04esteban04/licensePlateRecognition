@@ -74,6 +74,13 @@ document.addEventListener("DOMContentLoaded", () => {
 		btnDefault.classList.add("btn-outline-light");
 	}
 
+	// Reset results display
+	function resetResults() {
+		resultCardGrid.innerHTML = "";
+		resultTableBody.innerHTML = "";
+		results.classList.add("d-none");
+	}
+
 	// Change loading spinner in buttons when submitting
 	function loadingButtons(){
 
@@ -269,11 +276,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
 				} else {
 					showMessage(result.error || "An error occurred during processing.", true);
+					resetResults();
 				}
 			} 
 			
 			catch (error) {
 				showMessage("Failed to process file: " + error.message, true);
+				resetResults();
 			} 
 
 			finally {
@@ -429,13 +438,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
 				} else {
 					showMessage("No images returned from the server.", true);
+					resetResults();
 				}
  
 			} else {
 				showMessage(result.error || "An error occurred.", true);
+				resetResults();
 			}
 		} catch (error) {
 			showMessage("Failed to process default image: " + error.message, true);
+			resetResults();
 		}
 		finally {
 			resetLoadingButtons(); 

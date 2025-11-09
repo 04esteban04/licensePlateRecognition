@@ -75,7 +75,7 @@ footer,
 .main-section {
   background: 
     linear-gradient(to bottom, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.7)),  
-    url('/static/images/home.jpg') no-repeat center center;
+    url('/static/images/homeBackground.jpg') no-repeat center center;
   background-size: cover;
   min-height: 100vh;
   padding-top: 80px;
@@ -85,7 +85,7 @@ footer,
 
 .features-section {
   background: 
-    linear-gradient(to top, rgba(65, 161, 161, 0.7), rgba(0, 0, 0, 0.4)),
+    linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.4)),
     url('/static/images/featuresBackground.jpg') no-repeat center center;
   background-size: cover;
   min-height: 100vh;
@@ -98,7 +98,7 @@ footer,
   min-height: 100vh;
   padding-top: 80px;
   background: 
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),  
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),  
     url('/static/images/analysisBackground.jpg') no-repeat center center;
   background-size: cover;
 }
@@ -106,16 +106,16 @@ footer,
 .analysis-results-section {
   min-height: 100vh;
   background: 
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),  
-    url('/static/images/featuresBackground.jpg') no-repeat center center;
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),  
+    url('/static/images/results.webp') no-repeat center center;
   background-size: cover;
   background-attachment: fixed;
 }
 
 #about{
   background: 
-    linear-gradient(to top, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
-    url('/static/images/featuresBackground.jpg') no-repeat center center;
+    linear-gradient(to top, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)),
+    url('/static/images/results.webp') no-repeat center center;
   background-size: cover;
 }
 
