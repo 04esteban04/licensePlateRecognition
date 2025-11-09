@@ -3,15 +3,16 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-import utils.plateDetectionUtils as plateUtils
-import utils.charInferenceUtils as charUtils
-from utils.segmentationUtils import detectCharacters
+import utils.plateDetectionUtils as plateDetectionUtils
+import utils.preprocessUtils as preprocessUtils
+import utils.segmentationUtils as segmentationUtils
+import utils.charInferenceUtils as charInferenceUtils
 
 
 def detectPlate(model, imagePath, outputCropFolder):
     """Detects a license plate from the given image and saves the cropped plate."""
     
-    prediction = plateUtils.predictImage(model, imagePath, show=False)
+    prediction = plateDetectionUtils.predictImage(model, imagePath, show=False)
     
     if len(prediction[0].boxes) == 0:
         return prediction, None
@@ -21,11 +22,18 @@ def detectPlate(model, imagePath, outputCropFolder):
     return prediction, croppedPath
 
 
-def segmentCharacters(platePath):
+def preprocessPlate(platePath):
+    """Preprocesses the cropped plate image."""
+    
+    inputImg, threshImg, isRedPlate = preprocessUtils.preprocessPlate(platePath)
+    return inputImg, threshImg, isRedPlate
+
+
+def segmentCharacters(platePath, inputImg, threshImg):
     """Detects character contours from a cropped plate."""
     
-    contours, _, _, _, isRed = detectCharacters(platePath)
-    return contours, isRed
+    contours, _, _, _ = segmentationUtils.detectCharacters(platePath, inputImg, threshImg)
+    return contours
 
 
 def inferCharacters(model, contours, filename, charCropsFolder, isRedPlate):
@@ -51,7 +59,7 @@ def inferCharacters(model, contours, filename, charCropsFolder, isRedPlate):
 
     for i in range(startIdx, endIdx):
         charPath = Path(charCropsFolder) / fileStem / f"char_{i} ({fileStem}){fileExt}"
-        result, label = charUtils.predictImage(model, imagePath=str(charPath), show=False)
+        result, label = charInferenceUtils.predictImage(model, imagePath=str(charPath), show=False)
         
         print('result: ', result)
         print('result value: ', result[0].boxes[0].conf[0])
@@ -59,7 +67,7 @@ def inferCharacters(model, contours, filename, charCropsFolder, isRedPlate):
         charInferenceResults.append(result[0].boxes[0].conf[0].item())
         labels.append(label)
 
-    charUtils.renameInferenceOutputs("outputs/charInference", fileExt)
+    charInferenceUtils.renameInferenceOutputs("outputs/charInference", fileExt)
 
     return charInferenceResults, "".join(labels)
 

@@ -31,6 +31,7 @@ from reportlab.platypus import Image
 
 from utils.userInterfaceUtils import (
     detectPlate,
+    preprocessPlate,
     segmentCharacters,
     inferCharacters,
     collectOutputImages,
@@ -189,14 +190,17 @@ def processDefault():
         if not plateCropPath:
             return jsonify({"error": "No license plate detected."}), 400
 
+        # Preprocess plate
+        inputImg, threshImg, isRedPlate = preprocessPlate(plateCropPath)
+
         # Segment characters
-        contours, isRed = segmentCharacters(plateCropPath)
+        contours = segmentCharacters(plateCropPath, inputImg, threshImg)
         if not contours:
             return jsonify({"error": "No characters detected on the license plate."}), 400
 
         # Infer characters
         charInferenceResults, plateNumber = inferCharacters(
-            charModel, contours, filename, CHAR_CROPS_FOLDER, isRed
+            charModel, contours, filename, CHAR_CROPS_FOLDER, isRedPlate
         )
 
         # Get precisions
@@ -222,7 +226,7 @@ def processDefault():
         return jsonify(resultData), 200
 
     except Exception as e:
-        return jsonify({"error": f"Failed to process image TEST: {str(e)}"}), 500
+        return jsonify({"error": f"Failed to process image: {str(e)}"}), 500
 
 # Process uploaded image
 @app.route("/process/image", methods=["POST"])
@@ -246,14 +250,17 @@ def processImage():
         if plateCropPath is None:
             return jsonify({"error": "No license plate detected on input image. Please try with a different one."}), 400
 
+        # Preprocess plate
+        inputImg, threshImg, isRedPlate = preprocessPlate(plateCropPath)
+
         # Segment characters
-        contours, isRed = segmentCharacters(plateCropPath)
+        contours = segmentCharacters(plateCropPath, inputImg, threshImg)
         if not contours:
             return jsonify({"error": "No characters detected on the license plate. Please try with another image."}), 400
 
         # Infer characters
         charInferenceResults, plateNumber = inferCharacters(
-            charModel, contours, filename, CHAR_CROPS_FOLDER, isRed
+            charModel, contours, filename, CHAR_CROPS_FOLDER, isRedPlate
         )
 
         # Get precisions

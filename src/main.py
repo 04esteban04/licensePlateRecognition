@@ -1,5 +1,6 @@
 import utils.plateDetectionUtils as plateUtils
 import utils.charInferenceUtils as charUtils
+import utils.preprocessUtils as preprocessUtils
 from utils.segmentationUtils import detectCharacters
 from charInference.setupDataset import generateYoloCharDataset
 
@@ -43,11 +44,22 @@ if __name__ == "__main__":
         print("\nA license plate has been detected. Proceeding to segmentation and character inference... \n")
 
         #------------------------------- #
+        # Preprocessing
+        #------------------------------- #
+
+        imagePath = "./outputs/plateCrop/test-default.png"
+        inputImg, threshImg, isRedPlate = preprocessUtils.preprocessPlate(imagePath)
+        
+        #------------------------------- #
         # Character Segmentation
         #------------------------------- #
         
         # Detect characters on cropped plate image
-        contours, inputImgWithBoxes, resultImg, resizedImg, isRedPlate = detectCharacters("./outputs/plateCrop/test-default.png")
+        contours, inputImgWithBoxes, resultImg, resizedImg = detectCharacters(
+            imagePath,
+            inputImg,
+            threshImg
+        )
 
         print(f"\nDetected {len(contours)} character bounding boxes.\n")
         print("Bounding boxes:", contours, "\n")
@@ -87,7 +99,7 @@ if __name__ == "__main__":
         for i in range(start_idx, end_idx):
             results, label = charUtils.predictImage(
                 charModel, 
-                imagePath=f"./outputs/charCrops/test-default/char_{i}.png", 
+                imagePath=f"./outputs/charCrops/test-default/char_{i} (test-default).png", 
                 show=False
             )
             labels.append(label)

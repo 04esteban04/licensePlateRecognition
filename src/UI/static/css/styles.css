@@ -29,6 +29,15 @@ footer,
 
 /* ========== Tabs ========== */
 
+#home-icon {
+  transition: transform 0.4s ease, filter 0.4s ease;
+}
+
+#home-icon:hover {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.6));
+}
+
 .custom-tabs .nav-link {
   color: #f0f0f0;
   background-color: transparent;
