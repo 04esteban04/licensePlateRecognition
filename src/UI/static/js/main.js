@@ -79,6 +79,9 @@ document.addEventListener("DOMContentLoaded", () => {
 		resultCardGrid.innerHTML = "";
 		resultTableBody.innerHTML = "";
 		results.classList.add("d-none");
+
+		currentView = "table"
+		toggleView();
 	}
 
 	// Change loading spinner in buttons when submitting
@@ -154,6 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
 				e.preventDefault();
 
 				messageBox.classList.add("d-none");
+				resetResults();
 				
 				const fileInput = formElement.querySelector("input[type='file']");
 				const file = fileInput?.files[0];
@@ -176,10 +180,6 @@ document.addEventListener("DOMContentLoaded", () => {
 				if (response.ok) {
 			
 					showMessage(result.message || "File processed successfully.");
-
-					// === Clear previous results ===
-					resultCardGrid.innerHTML = "";
-					resultTableBody.innerHTML = "";
 
 					// === Check if images exist ===
 					if (result.images) {
@@ -276,7 +276,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 				} else {
 					showMessage(result.error || "An error occurred during processing.", true);
-					resetResults();
 				}
 			} 
 			

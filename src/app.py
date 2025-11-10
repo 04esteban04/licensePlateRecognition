@@ -1,34 +1,43 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory, send_file, url_for
-from werkzeug.utils import secure_filename
-#from preprocessing.preprocessImages import processImage, processFolder, processDefaultDataset
-#from nn.resnet_NN_test import testWithDefaultDataset, testWithCustomDataset
-
-import utils.plateDetectionUtils as plateUtils
-import utils.charInferenceUtils as charUtils
-from utils.segmentationUtils import detectCharacters
-from charInference.setupDataset import generateYoloCharDataset
-
-from datetime import datetime
+import io
+import json
 import os
 import shutil
 import zipfile
+from datetime import datetime
+from io import BytesIO
+from pathlib import Path
+
 import pandas as pd
-from reportlab.pdfgen import canvas
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, Image, Spacer, PageBreak
-from reportlab.lib.pagesizes import letter
+from flask import (
+    Flask,
+    jsonify,
+    render_template,
+    request,
+    send_file,
+    send_from_directory,
+    url_for
+)
+from PIL import Image as PILImage
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
-from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-import io
-from pathlib import Path
-from io import BytesIO
 from reportlab.lib.units import inch
-import json
-from datetime import datetime
-from PIL import Image as PILImage
-from reportlab.platypus import Image
+from reportlab.pdfgen import canvas
+from reportlab.platypus import (
+    Image,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle
+)
+from werkzeug.utils import secure_filename
 
+import utils.plateDetectionUtils as plateDetectionUtils
+import utils.charInferenceUtils as charInferenceUtils
+import utils.datasetUtils as datasetUtils
 from utils.userInterfaceUtils import (
     detectPlate,
     preprocessPlate,
@@ -39,7 +48,7 @@ from utils.userInterfaceUtils import (
 )
 
 
-# Configuration
+# App configuration
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'outputs'
 PLATE_CROPS_FOLDER = 'outputs/plateCrop'
@@ -48,69 +57,58 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 TEMPLATE_DIR = os.path.abspath("UI/templates")
 STATIC_DIR = os.path.abspath("UI/static")
 
-# Initialize Flask app
 app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 
 
-#------------------------------- #
-# Plate Detection Model
-#------------------------------- #
+#------------------------------------------ #
+# Plate detection model configuration
+#------------------------------------------ #
 
-# Clean folders before running
-plateUtils.cleanDirectories()
+plateDetectionUtils.cleanDirectories()
 
-# Load model
-plateDetectionModel = plateUtils.loadModel("best.pt", "./models/yoloPlateDetection/train/weights")
+plateDetectionModel = plateDetectionUtils.loadModel("best.pt", "./models/yoloPlateDetection/train/weights")
 
-# Prepare plate recognition dataset
-data_yaml, plateDataDict = plateUtils.prepareDataset("dataset/LicensePlateData")
+data_yaml, plateDataDict = plateDetectionUtils.prepareDataset("dataset/LicensePlateData")
 
-#Update model classes to match dataset
 plateDetectionModel.model.names = plateDataDict["names"]
 plateDetectionModel.model.nc = plateDataDict["nc"]
 print(f"Model classes set: {plateDetectionModel.model.names}, nc={plateDetectionModel.model.nc}")
 
-# Setup char inference dataset
-print("\nSetting up dataset for char inference ...")
-generateYoloCharDataset(seed=42)
 
+#------------------------------------------ #
+# Character inference model configuration
+#------------------------------------------ #
 
-#------------------------------- #
-# Character Inference Model
-#------------------------------- #
+charModel = charInferenceUtils.loadModel("best.pt", "./models/yoloCharInference/train/weights")
 
-# Load char inference model
-charModel = charUtils.loadModel("best.pt", "./models/yoloCharInference/train/weights")
+datasetUtils.generateYoloCharDataset(seed=42)
+charDataYaml, charDataDict = charInferenceUtils.prepareDataset()
 
-# Prepare dataset
-charDataYaml, charDataDict = charUtils.prepareDataset()
-
-#Update charModel classes to match dataset
 charModel.model.names = charDataDict["names"]
 charModel.model.nc = charDataDict["nc"]
 print(f"\nModel classes set: {charModel.model.names}, nc={charModel.model.nc}")
 
-print("\n---\n")
 
+# ------------------------------- #
+# Utility functions
+# ------------------------------- #
 
-# Check file extensions
-def allowedFile(filename):
+def checkUploadFileType(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# Create upload folder if it doesn't exist
 def resetUploadFolder():
     folder = app.config['UPLOAD_FOLDER']
+
     if os.path.exists(folder):
         shutil.rmtree(folder)
+
     os.makedirs(folder)
 
-# Calculate precisions
 def calculatePrecisions(plateDetection, charPrecisions):
     """
-    Safely calculate plate detection precision and mean precision across
-    plate and character detections.
+    Calculate plate detection precision and mean precision across plate and character detections.
 
     Args:
         plateDetection (ultralytics.engine.results.Results): YOLO plate detection result.
@@ -119,11 +117,12 @@ def calculatePrecisions(plateDetection, charPrecisions):
     Returns:
         float: meanPrecision
     """
+    
     plateDetectionPrecision = None
     meanPrecision = None
 
     try:
-        # --- Plate detection precision ---
+        
         if (
             plateDetection
             and plateDetection[0].boxes is not None
@@ -132,95 +131,68 @@ def calculatePrecisions(plateDetection, charPrecisions):
         ):
             plateDetectionPrecision = float(plateDetection[0].boxes.conf.max())
             print(f"Prediction precision (plate): {plateDetectionPrecision:.4f}")
+        
         else:
-            print("⚠️ No valid plate confidence found.")
+            print("No valid plate confidence found.")
 
-        # --- Character precision (from list) ---
+        # Get individual character precision from list
         if charPrecisions and len(charPrecisions) > 0:
             meanPrecision = ((plateDetectionPrecision or 0) + sum(charPrecisions)) / (
                 len(charPrecisions) + (1 if plateDetectionPrecision is not None else 0)
             )
             meanPrecision *= 100
-            print(f"\n🔹 Mean precision: {meanPrecision:.4f}")
+            print(f"\nMean precision: {meanPrecision:.4f}")
         else:
-            print("⚠️ No character detections found.")
+            print("No character detections found.")
 
     except Exception as e:
-        print(f"⚠️ Error while extracting precisions: {e}")
+        print(f"Error while extracting precisions: {e}")
         plateDetectionPrecision = None
         meanPrecision = None
 
     return meanPrecision
 
-# Context processor to inject current year into templates
-@app.context_processor
-def inject_now():
-    return {'current_year': datetime.now().year}
-
-# Load the main UI
-@app.route("/", methods=["GET"])
-def index():
-    return render_template("index.html")
-
-# Serve output files
-@app.route('/outputs/<path:filename>')
-def serve_output_file(filename):
-    """Serve files from the src/outputs directory."""
-    output_folder = app.config['OUTPUT_FOLDER']
-    return send_from_directory(output_folder, filename)
-
-# Process default image
-@app.route("/process/default", methods=["POST"])
-def processDefault():
+def processPlateImage(imagePath, fileName):
+    """Execute the plate recognition and inference process for a given image."""
+    
     try:
-        # Use a fixed image path instead of uploaded file
-        baseDir = os.path.dirname(os.path.abspath(__file__))
-        imagePath = os.path.join(baseDir, "assets/testImages", "test-default.png")
-        filename = os.path.basename(imagePath)
-
-        if not os.path.exists(imagePath):
-            return jsonify({"error": f"Fixed image not found at {imagePath}"}), 404
-
-        # Reset and prepare environment
-        plateUtils.cleanDirectories()
-        resetUploadFolder()
+        
+        plateDetectionUtils.cleanDirectories()
 
         # Detect plate
         plateDetection, plateCropPath = detectPlate(plateDetectionModel, imagePath, PLATE_CROPS_FOLDER)
         if not plateCropPath:
-            return jsonify({"error": "No license plate detected."}), 400
+            return {"error": "No license plate detected."}, 400
 
-        # Preprocess plate
+        # Preprocess plate image
         inputImg, threshImg, isRedPlate = preprocessPlate(plateCropPath)
 
         # Segment characters
         contours = segmentCharacters(plateCropPath, inputImg, threshImg)
         if not contours:
-            return jsonify({"error": "No characters detected on the license plate."}), 400
+            return {"error": "No characters detected on the license plate."}, 400
 
         # Infer characters
         charInferenceResults, plateNumber = inferCharacters(
-            charModel, contours, filename, CHAR_CROPS_FOLDER, isRedPlate
+            charModel, contours, fileName, CHAR_CROPS_FOLDER, isRedPlate
         )
 
         # Get precisions
         meanPrecision = calculatePrecisions(plateDetection, charInferenceResults)
         print(f"\n Final Mean Precision: {meanPrecision:.4f}%")
 
-        # Collect output images
-        images = collectOutputImages(filename, Path(filename).suffix)
+        # Get output images
+        images = collectOutputImages(fileName, Path(fileName).suffix)
 
-        # Build result data
         resultData = {
             "message": "Image processed successfully!",
             "predictedPlateNumber": plateNumber,
             "images": images,
-            "originalFilename": filename,
+            "originalFilename": fileName,
             "timestamp": datetime.now().isoformat(),
             "meanPrecision": f"{meanPrecision:.4f}"
         }
 
-        # Save last result
         saveLastResult(app.config["OUTPUT_FOLDER"], resultData)
 
         return jsonify(resultData), 200
@@ -228,91 +200,14 @@ def processDefault():
     except Exception as e:
         return jsonify({"error": f"Failed to process image: {str(e)}"}), 500
 
-# Process uploaded image
-@app.route("/process/image", methods=["POST"])
-def processImage():
-    try:
-        file = request.files.get("file")
-        if not file or not allowedFile(file.filename):
-            return jsonify({"error": "Unsupported or missing file."}), 400
-
-        # Reset and prepare environment
-        plateUtils.cleanDirectories()
-        resetUploadFolder()
-
-        filename = secure_filename(file.filename)
-        imagePath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-        file.save(imagePath)
-
-        # Detect plate
-        plateDetection, plateCropPath = detectPlate(plateDetectionModel, imagePath, PLATE_CROPS_FOLDER)
-
-        if plateCropPath is None:
-            return jsonify({"error": "No license plate detected on input image. Please try with a different one."}), 400
-
-        # Preprocess plate
-        inputImg, threshImg, isRedPlate = preprocessPlate(plateCropPath)
-
-        # Segment characters
-        contours = segmentCharacters(plateCropPath, inputImg, threshImg)
-        if not contours:
-            return jsonify({"error": "No characters detected on the license plate. Please try with another image."}), 400
-
-        # Infer characters
-        charInferenceResults, plateNumber = inferCharacters(
-            charModel, contours, filename, CHAR_CROPS_FOLDER, isRedPlate
-        )
-
-        # Get precisions
-        meanPrecision = calculatePrecisions(plateDetection, charInferenceResults)
-        print(f"\n Final Mean Precision: {meanPrecision:.4f}%")
-
-        # Collect output images
-        images = collectOutputImages(filename, Path(filename).suffix)
-
-        # Build result data
-        resultData = {
-            "message": "Image processed successfully!",
-            "predictedPlateNumber": plateNumber,
-            "images": images,
-            "originalFilename": filename,
-            "timestamp": datetime.now().isoformat(),
-            "meanPrecision": f"{meanPrecision:.4f}"
-        }
-
-        # Save last result
-        saveLastResult(app.config["OUTPUT_FOLDER"], resultData)
-
-        return jsonify(resultData), 200
-
-    except Exception as e:
-        return jsonify({"error": f"Failed to process image: {str(e)}"}), 500
-
-# Export PDF report for last processed image
-@app.route('/export-pdf', methods=['GET'])
-def export_pdf():
-    try:
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        temp_result_path = os.path.join(base_dir, "outputs", "last_result.json")
-
-        # Generate PDF for single image if last result exists
-        with open(temp_result_path, "r") as f:
-            data = json.load(f)
-            if data:
-                return generate_single_image_pdf(data)
-        
-        return jsonify({"error": "No processed image data available for PDF generation."}), 400
-
-    except Exception as e:
-        return jsonify({"error": f"Failed to export PDF: {str(e)}"}), 500
-
-# Generate PDF for single image
-def generate_single_image_pdf(data):
+def generatePDF(data):
     """
     Generate a PDF report for the last processed image.
     Includes predicted plate, timestamp, and source filename.
     """
+    
     try:
+    
         buffer = BytesIO()
         doc = SimpleDocTemplate(
             buffer, pagesize=letter,
@@ -413,7 +308,69 @@ def generate_single_image_pdf(data):
     except Exception as e:
         return jsonify({"error": f"Error generating single-image PDF: {str(e)}"}), 500
 
+@app.context_processor
+def inject_now():
+    """Inject current year into templates."""
+    return {'current_year': datetime.now().year}
 
-# Run the app
+
+@app.route("/", methods=["GET"])
+def index():
+    return render_template("index.html")
+
+@app.route('/outputs/<path:filename>')
+def serve_output_file(filename):
+    """Serve files from the outputs directory."""
+   
+    output_folder = app.config['OUTPUT_FOLDER']
+    return send_from_directory(output_folder, filename)
+
+@app.route("/process/image", methods=["POST"])
+def processImage():
+    file = request.files.get("file")
+    if not file or not checkUploadFileType(file.filename):
+        return jsonify({"error": "Unsupported or missing file."}), 400
+
+    resetUploadFolder()
+    
+    fileName = secure_filename(file.filename)
+    imagePath = os.path.join(app.config["UPLOAD_FOLDER"], fileName)
+    file.save(imagePath)
+
+    result, status = processPlateImage(imagePath, fileName)
+    return result, status
+
+@app.route("/process/default", methods=["POST"])
+def processDefault():
+    baseDir = os.path.dirname(os.path.abspath(__file__))
+    imagePath = os.path.join(baseDir, "assets/testImages", "test-default.png")
+    fileName = os.path.basename(imagePath)
+
+    if not os.path.exists(imagePath):
+        return jsonify({"error": f"Default image not found at {imagePath}"}), 404
+
+    result, status = processPlateImage(imagePath, fileName)
+    return result, status
+
+@app.route('/export-pdf', methods=['GET'])
+def export_pdf():
+    
+    try:
+    
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        temp_result_path = os.path.join(base_dir, "outputs", "last_result.json")
+
+        # Generate PDF for single image if last result exists
+        with open(temp_result_path, "r") as f:
+            data = json.load(f)
+            if data:
+                return generatePDF(data)
+        
+        return jsonify({"error": "No processed image data available for PDF generation."}), 400
+
+    except Exception as e:
+        return jsonify({"error": f"Failed to export PDF: {str(e)}"}), 500
+
+
 if __name__ == "__main__":
     app.run(debug=True)

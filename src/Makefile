@@ -51,7 +51,7 @@ segmentation: preprocess
 # Character Inference Model Targets
 # ------------------------------- #
 setupCharInferenceDataset:
-	$(PYTHON) -m tests.charInference.setupDataset
+	$(PYTHON) -m utils.datasetUtils
 
 trainCharInferenceModel:
 	$(PYTHON) -m tests.charInference.trainModel

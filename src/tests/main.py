@@ -2,7 +2,7 @@ import utils.plateDetectionUtils as plateDetectionUtils
 import utils.charInferenceUtils as charInferenceUtils
 import utils.preprocessUtils as preprocessUtils
 import utils.segmentationUtils as segmentationUtils
-from .charInference.setupDataset import generateYoloCharDataset
+from utils.datasetUtils import generateYoloCharDataset
 
 
 if __name__ == "__main__":
