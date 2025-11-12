@@ -36,6 +36,9 @@ from reportlab.platypus import (
 )
 from werkzeug.utils import secure_filename
 
+import psycopg
+from dotenv import load_dotenv
+
 import utils.plateDetectionUtils as plateDetectionUtils
 import utils.charInferenceUtils as charInferenceUtils
 import utils.datasetUtils as datasetUtils
@@ -50,6 +53,8 @@ from utils.userInterfaceUtils import (
 
 
 # App configuration
+load_dotenv()
+
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'outputs'
 PLATE_CROPS_FOLDER = 'outputs/plateCrop'
@@ -106,6 +111,74 @@ logger.info(f"Model classes set: {charModel.model.names}, nc={charModel.model.nc
 # ------------------------------- #
 # Utility functions
 # ------------------------------- #
+
+def getDB():
+    """Connects to PostgreSQL using .env variables."""
+
+    return psycopg.connect(
+        host=os.getenv("PGHOST"),
+        port=os.getenv("PGPORT"),
+        dbname=os.getenv("PGDATABASE"),
+        user=os.getenv("PGUSER"),
+        password=os.getenv("PGPASSWORD"),
+        autocommit=True,
+    )
+
+def getCarData(plateNumber):
+    """Fetches car data from the database."""
+    
+    dbMatch = {
+        "matched": False,
+        "carId": None,
+        "alerts": None,
+        "inferenceId": None,
+        "detectedAt": None,
+    }
+    
+    try:
+        with getDB() as conn:
+            with conn.cursor() as cur:
+                
+                cur.execute(
+                    """
+                    SELECT id, full_plate, alerts
+                    FROM car_data
+                    WHERE UPPER(full_plate) = UPPER(%s)
+                    LIMIT 1;
+                    """,
+                    (plateNumber,)
+                )
+                row = cur.fetchone()
+                carID = row[0] if row else None
+                alerts = row[2] if row else None
+
+                # Insert inference record
+                cur.execute(
+                    """
+                    INSERT INTO inference_records (detected_plate, car_id)
+                    VALUES (%s, %s)
+                    RETURNING id, detected_at;
+                    """,
+                    (plateNumber, carID)
+                )
+                infoRow = cur.fetchone()
+
+                dbMatch["matched"] = carID is not None
+                dbMatch["carId"] = carID
+                dbMatch["alerts"] = alerts
+                dbMatch["inferenceId"] = infoRow[0] if infoRow else None
+                dbMatch["detectedAt"] = (
+                    infoRow[1].isoformat() if infoRow and infoRow[1] else None
+                )
+
+        logger.info(
+            "DB inference record saved. matched=%s carId=%s inferenceId=%s",
+            dbMatch["matched"], dbMatch["carId"], dbMatch["inferenceId"]
+        )
+    except Exception as dbErr:
+        logger.error("DB operation failed: %s", dbErr, exc_info=True)
+
+    return dbMatch
 
 def checkUploadFileType(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -192,7 +265,11 @@ def processPlateImage(imagePath, fileName):
         # Get precisions
         meanPrecision = calculatePrecisions(plateDetection, charInferenceResults)
         logger.info(f"Final Mean Precision: {meanPrecision:.4f}%")
-
+        
+        # Get car data from DB
+        carData = getCarData(plateNumber)
+        logger.info(f"Car data retrieved: {carData}")
+        
         # Get output images
         images = collectOutputImages(fileName, Path(fileName).suffix)
 
@@ -202,7 +279,8 @@ def processPlateImage(imagePath, fileName):
             "images": images,
             "originalFilename": fileName,
             "timestamp": datetime.now().isoformat(),
-            "meanPrecision": f"{meanPrecision:.4f}"
+            "meanPrecision": f"{meanPrecision:.4f}",
+            "carData": carData
         }
 
         saveLastResult(app.config["OUTPUT_FOLDER"], resultData)
@@ -233,12 +311,37 @@ def generatePDF(data):
             alignment=TA_CENTER
         )
 
-        elements = []
+        alert_style = ParagraphStyle(
+            name="AlertBox",
+            parent=styles["Normal"],
+            backColor=colors.HexColor("#FFE5E5"),
+            textColor=colors.HexColor("#B30000"),
+            borderColor=colors.HexColor("#B30000"),
+            borderWidth=1,
+            borderPadding=8,
+            leading=14,
+            alignment=TA_CENTER
+        )
+        ok_style = ParagraphStyle(
+            name="OkBox",
+            parent=styles["Normal"],
+            backColor=colors.HexColor("#E7F5E9"),
+            textColor=colors.HexColor("#0F5132"),
+            borderColor=colors.HexColor("#0F5132"),
+            borderWidth=1,
+            borderPadding=8,
+            leading=14,
+            alignment=TA_CENTER
+        )
 
         plate_number = data.get("predictedPlateNumber", "N/A")
         images = data.get("images", {})
         file_name = data.get("originalFilename", "Unknown")
         process_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        alerts = data["carData"].get("alerts")
+
+        elements = []
 
         # === Title and Metadata ===
         elements.append(Paragraph("License Plate Recognition Report", styles["Title"]))
@@ -249,6 +352,12 @@ def generatePDF(data):
         elements.append(Paragraph(f"<b>Predicted Plate Number:</b> {plate_number}", styles["Heading2"]))
         elements.append(Spacer(1, 20))
 
+        # === Alerts box ===
+        if alerts != 'None':
+            elements.append(Paragraph(f"<b>ALERTS:</b> {alerts}", alert_style))
+        else:
+            elements.append(Paragraph("<b>ALERTS:</b> --- No alerts ---", ok_style))
+        elements.append(Spacer(1, 16))
 
         # === Helper function to scale images ===
         def scaled_image(path, max_w=3*inch, max_h=1.5*inch):

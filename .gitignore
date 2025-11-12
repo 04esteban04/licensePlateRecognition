@@ -3,3 +3,4 @@ src/outputs
 src/dataset
 src/uploads
 *.log
+.env

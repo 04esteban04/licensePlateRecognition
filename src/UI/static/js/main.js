@@ -262,6 +262,7 @@ document.addEventListener("DOMContentLoaded", () => {
 							</td>
 							<td>${result.predictedPlateNumber}</td>
 							<td>${result.meanPrecision}</td>
+							<td>${result.carData?.alerts}</td>
 						`;
 						resultTableBody.appendChild(row);
 
@@ -428,6 +429,7 @@ document.addEventListener("DOMContentLoaded", () => {
 							</td>
 							<td>${result.predictedPlateNumber}</td>
 							<td>${result.meanPrecision}</td>
+							<td>${result.carData?.alerts}</td>
 					`;
 					resultTableBody.appendChild(row);
 
