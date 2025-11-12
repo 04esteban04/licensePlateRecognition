@@ -6,6 +6,7 @@ import zipfile
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
+import logging
 
 import pandas as pd
 from flask import (
@@ -61,6 +62,17 @@ app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.FileHandler("plateDetection.log"),
+        logging.StreamHandler()
+    ]
+)
+
+logger = logging.getLogger(__name__)
 
 #------------------------------------------ #
 # Plate detection model configuration
@@ -74,7 +86,7 @@ data_yaml, plateDataDict = plateDetectionUtils.prepareDataset("dataset/LicensePl
 
 plateDetectionModel.model.names = plateDataDict["names"]
 plateDetectionModel.model.nc = plateDataDict["nc"]
-print(f"Model classes set: {plateDetectionModel.model.names}, nc={plateDetectionModel.model.nc}")
+logger.info(f"Model classes set: {plateDetectionModel.model.names}, nc={plateDetectionModel.model.nc}")
 
 
 #------------------------------------------ #
@@ -88,7 +100,7 @@ charDataYaml, charDataDict = charInferenceUtils.prepareDataset()
 
 charModel.model.names = charDataDict["names"]
 charModel.model.nc = charDataDict["nc"]
-print(f"\nModel classes set: {charModel.model.names}, nc={charModel.model.nc}")
+logger.info(f"Model classes set: {charModel.model.names}, nc={charModel.model.nc}")
 
 
 # ------------------------------- #
@@ -130,10 +142,10 @@ def calculatePrecisions(plateDetection, charPrecisions):
             and len(plateDetection[0].boxes.conf) > 0
         ):
             plateDetectionPrecision = float(plateDetection[0].boxes.conf.max())
-            print(f"Prediction precision (plate): {plateDetectionPrecision:.4f}")
+            logger.info(f"Prediction precision (plate): {plateDetectionPrecision:.4f}")
         
         else:
-            print("No valid plate confidence found.")
+            logger.info("No valid plate confidence found.")
 
         # Get individual character precision from list
         if charPrecisions and len(charPrecisions) > 0:
@@ -141,12 +153,12 @@ def calculatePrecisions(plateDetection, charPrecisions):
                 len(charPrecisions) + (1 if plateDetectionPrecision is not None else 0)
             )
             meanPrecision *= 100
-            print(f"\nMean precision: {meanPrecision:.4f}")
+            logger.info(f"Mean precision: {meanPrecision:.4f}")
         else:
-            print("No character detections found.")
+            logger.info("No character detections found.")
 
     except Exception as e:
-        print(f"Error while extracting precisions: {e}")
+        logger.error(f"Error while extracting precisions: {e}", exc_info=True)
         plateDetectionPrecision = None
         meanPrecision = None
 
@@ -179,7 +191,7 @@ def processPlateImage(imagePath, fileName):
 
         # Get precisions
         meanPrecision = calculatePrecisions(plateDetection, charInferenceResults)
-        print(f"\n Final Mean Precision: {meanPrecision:.4f}%")
+        logger.info(f"Final Mean Precision: {meanPrecision:.4f}%")
 
         # Get output images
         images = collectOutputImages(fileName, Path(fileName).suffix)
@@ -198,6 +210,7 @@ def processPlateImage(imagePath, fileName):
         return jsonify(resultData), 200
 
     except Exception as e:
+        logger.error(f"Failed to process image: {e}", exc_info=True)
         return jsonify({"error": f"Failed to process image: {str(e)}"}), 500
 
 def generatePDF(data):
@@ -253,7 +266,7 @@ def generatePDF(data):
             if rel_path:
                 img_path = os.path.join(os.getcwd(), rel_path.strip("/"))
                 elements.append(Paragraph(f"<b>{title}</b>", styles["Heading4"]))
-                
+
                 if os.path.exists(img_path):
                     if is_first:
                         elements.append(scaled_image(img_path, max_w=5*inch, max_h=3*inch))
@@ -306,6 +319,7 @@ def generatePDF(data):
         )
 
     except Exception as e:
+        logger.error(f"Error generating single-image PDF: {e}", exc_info=True)
         return jsonify({"error": f"Error generating single-image PDF: {str(e)}"}), 500
 
 @app.context_processor
@@ -338,6 +352,7 @@ def processImage():
     file.save(imagePath)
 
     result, status = processPlateImage(imagePath, fileName)
+    logger.info("\n\n" + "-"*50 + "\n")
     return result, status
 
 @app.route("/process/default", methods=["POST"])
@@ -369,6 +384,7 @@ def export_pdf():
         return jsonify({"error": "No processed image data available for PDF generation."}), 400
 
     except Exception as e:
+        logger.error(f"Failed to export PDF: {e}", exc_info=True)
         return jsonify({"error": f"Failed to export PDF: {str(e)}"}), 500
 
 

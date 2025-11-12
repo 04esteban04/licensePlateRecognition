@@ -1,6 +1,10 @@
 import cv2
 import numpy as np
 from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def findCharacterContours(threshImg):
     """Find external contours representing character candidates."""
@@ -93,7 +97,7 @@ def saveCharacterCrops(img, contours, imagePath, outputRoot="outputs/charCrops",
         # Save processed character
         cropFile = saveDir / f"char_{i} ({folderName}){ext}"
         cv2.imwrite(str(cropFile), squareImg)
-        print(f"Saved processed character: {cropFile}")
+        logger.info(f"Saved processed character: {cropFile}")
 
     return saveDir
 
@@ -119,9 +123,9 @@ def saveImages(originalImg, inputImgWithBoxes, resultImg, resizedImg, outputRoot
     cv2.imwrite(str(resultImgPath), resultImg)
     cv2.imwrite(str(resizedImgPath), resizedImg)
 
-    print(f"Saved input image with boxes: {inputImgPath}")
-    print(f"Saved thresholded image with boxes: {resultImgPath}")
-    print(f"Saved resized output image: {resizedImgPath}")
+    logger.info(f"Saved input image with boxes: {inputImgPath}")
+    logger.info(f"Saved thresholded image with boxes: {resultImgPath}")
+    logger.info(f"Saved resized output image: {resizedImgPath}")
 
 
 def detectCharacters(imagePath, inputImg, threshImg):

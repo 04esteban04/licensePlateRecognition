@@ -4,6 +4,9 @@ import yaml
 from pathlib import Path
 import cv2
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 DEFAULT_SOURCE_DIR = "./assets/charImages"   # Folder with base character images (e.g., char_A.jpg)
@@ -24,7 +27,7 @@ def setupOutputDirs(outputDir):
     for sub in ["train/images", "train/labels", "val/images", "val/labels"]:
         Path(outputDir, sub).mkdir(parents=True, exist_ok=True)
     
-    print(f"\nDirectory structure created under: {outputDir}\n")
+    logger.info(f"Directory structure created under: {outputDir}")
 
 
 def createSample(img):
@@ -88,7 +91,7 @@ def processImages(sourceDir, imageList, outputDir, split, samplesPerImage):
         char = Path(imgName).stem.upper().replace("CHAR_", "").replace("CHAR", "")
 
         if char not in CLASS_TO_ID:
-            print(f"Unknown character: {char}")
+            logger.warning(f"Unknown character: {char}")
             continue
 
         classId = CLASS_TO_ID[char]
@@ -96,7 +99,7 @@ def processImages(sourceDir, imageList, outputDir, split, samplesPerImage):
         # Read original image
         img = cv2.imread(str(imgPath))
         if img is None:
-            print(f"Could not read {imgName}")
+            logger.warning(f"Could not read {imgName}")
             continue
 
         for i in range(samplesPerImage):
@@ -112,8 +115,6 @@ def processImages(sourceDir, imageList, outputDir, split, samplesPerImage):
             # Save YOLO label (centered bounding box)
             with open(labelPath, "w") as f:
                 f.write(f"{classId} 0.5 0.5 1.0 1.0\n")
-
-        print(f"    {imgName} \t → {samplesPerImage} samples \t → class {classId}")
 
 
 def createDataYaml(outputDir):
@@ -131,7 +132,7 @@ def createDataYaml(outputDir):
     with open(yamlPath, "w") as f:
         yaml.dump(data, f, sort_keys=False)
 
-    print(f"\nFile data.yaml successfully created at: {yamlPath}\n")
+    logger.info(f"File data.yaml successfully created at: {yamlPath}")
 
 
 def generateYoloCharDataset(sourceDir=DEFAULT_SOURCE_DIR,
@@ -152,7 +153,7 @@ def generateYoloCharDataset(sourceDir=DEFAULT_SOURCE_DIR,
     if seed is not None:
         random.seed(seed)
         np.random.seed(seed)
-        print(f"\n Using fixed random seed: {seed}\n")
+        logger.info(f"Using fixed random seed: {seed}")
 
     setupOutputDirs(outputDir)
 
@@ -161,16 +162,12 @@ def generateYoloCharDataset(sourceDir=DEFAULT_SOURCE_DIR,
     
     random.shuffle(allImages)
 
-    # splitIdx = int(len(allImages) * (1 - valSplit))
-    # trainImgs = allImages[:splitIdx]
-    # valImgs = allImages[splitIdx:]
-
-
     # Randomly choose validation classes based on seed
     numValClasses = int(len(allImages) * valSplit)  # how many classes to include in validation
     valClasses = random.sample(CLASSES, numValClasses)
 
-    print(f"\nSelected validation classes: {valClasses}\n")
+    logger.info(f"Creating YOLO character dataset from source: {sourceDir}")
+    logger.info(f"Selected validation classes: {valClasses}")
 
     trainImgs, valImgs = [], []
 
@@ -188,9 +185,7 @@ def generateYoloCharDataset(sourceDir=DEFAULT_SOURCE_DIR,
         if cls in valClasses:
             valImgs += clsImgs
 
-
-    print(f"\nTotal base images: {len(allImages)}")
-    print(f"   Train: {len(trainImgs)} | Validation: {len(valImgs)}\n")
+    logger.info(f"Total base images {len(allImages)} \t -> Train: {len(trainImgs)} | Validation: {len(valImgs)}")
 
     processImages(sourceDir, trainImgs, outputDir, "train", samplesPerImage)
     processImages(sourceDir, valImgs, outputDir, "val", samplesPerImage)
@@ -198,9 +193,9 @@ def generateYoloCharDataset(sourceDir=DEFAULT_SOURCE_DIR,
     # Create YOLO data.yaml
     createDataYaml(outputDir)
 
+    logger.info("YOLO character dataset generated successfully!")
+
 
 if __name__ == "__main__":
 
     generateYoloCharDataset(seed=42)
-
-    print("\nYOLO character dataset generated successfully!\n")

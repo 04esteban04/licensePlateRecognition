@@ -6,16 +6,19 @@ import torch
 import yaml
 import kagglehub
 from PIL import Image
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def cleanDirectories(dirs=["outputs"]):
     """Remove specified directories if they already exist."""
-    
+
     for d in dirs:
         path = Path(d)
     
         if path.exists():
-            print(f"Removing directory: {path}")
+            logger.info(f"Removing directory: {path}")
             shutil.rmtree(path)
 
 
@@ -26,16 +29,16 @@ def loadModel(modelName="yolo11n.pt", saveDir="models/test"):
     modelPath = Path(saveDir) / modelName
 
     if modelPath.exists():
-        print(f"\nLoading local model: {modelPath}")
+        logger.info(f"Loading local model: {modelPath}")
         return YOLO(str(modelPath))
     
     else:
-        print(f"\nDownloading model: {modelName}")
+        logger.info(f"Downloading model: {modelName}")
         model = YOLO(modelName)
     
         if Path(modelName).exists():
             shutil.move(modelName, modelPath)
-            print(f"\nModel saved to: {modelPath}")
+            logger.info(f"Model saved to: {modelPath}")
     
         return model
 
@@ -46,7 +49,7 @@ def prepareDataset(localPath="dataset/testDataset"):
     datasetPath = Path(localPath).expanduser().resolve()
   
     if not datasetPath.exists():
-        print(f"\nDataset not found in {datasetPath}. \nChecking Kaggle cache...")
+        logger.info(f"Dataset not found in {datasetPath}. Checking Kaggle cache...")
 
         # Try Kaggle cache/download
         kagglePath = Path(kagglehub.dataset_download("sujaymann/car-number-plate-dataset-yolo-format"))
@@ -57,30 +60,31 @@ def prepareDataset(localPath="dataset/testDataset"):
             # If kagglePath already matches localPath, just reuse it
             if kagglePath.resolve() != datasetPath:
                 shutil.copytree(kagglePath, datasetPath)
-                print(f"    Dataset copied from cache to: {datasetPath}")
+                logger.info(f"Dataset copied from cache to: {datasetPath}")
             else:
-                print(f"    Dataset already available in Kaggle cache: {datasetPath}")
+                logger.info(f"Dataset already available in Kaggle cache: {datasetPath}")
         else:
-            raise FileNotFoundError("\nFailed to retrieve dataset from Kaggle.")
-
+            logger.error("Failed to retrieve dataset from Kaggle.")
+            raise FileNotFoundError("Failed to retrieve dataset from Kaggle.")
 
     # Fix double nested folder problem
     nestedPath = datasetPath / "License-Plate-Data"
     if nestedPath.exists() and (nestedPath / "data.yaml").exists():
-        print("\nFixing nested folder structure...")
+        logger.info("Fixing nested folder structure...")
 
         for item in nestedPath.iterdir():
             shutil.move(str(item), str(datasetPath))
-        
+
         shutil.rmtree(nestedPath)
 
 
     yamlFiles = list(datasetPath.rglob("data.yaml"))
     if not yamlFiles:
-        raise FileNotFoundError(f"  data.yaml not found in {datasetPath}")
+        logger.error(f"data.yaml not found in {datasetPath}")
+        raise FileNotFoundError(f"data.yaml not found in {datasetPath}")
 
     dataYaml = yamlFiles[0]
-    print(f"\nDataset ready at: {dataYaml}")
+    logger.info(f"Dataset ready at: {dataYaml}")
 
     with open(dataYaml, "r") as f:
         data = yaml.safe_load(f)
@@ -99,8 +103,13 @@ def trainModel(model, data, epochs=100, imgsz=640, device=None, project="models/
        
     if device is None:
         device = "0" if torch.cuda.is_available() else "cpu"
-        print(f"Training on: {'GPU' if device != 'cpu' else 'CPU'}")
-   
+        logger.info(f"Training on: {'GPU' if device != 'cpu' else 'CPU'}")
+
+    logger.info(
+        f"Starting training: epochs={epochs}, imgsz={imgsz}, device={device}, "
+        f"project={project}, name={name}, workers={workers}"
+    )
+
     return model.train(
         data = data,
         epochs = epochs,
@@ -108,21 +117,25 @@ def trainModel(model, data, epochs=100, imgsz=640, device=None, project="models/
         device = device,
         project = project,
         name = name,
-        workers=workers
+        workers = workers
     )
 
 
 def evaluateModel(model, data, project="models/yolo", name="validation"):
-    """ Evaluate the model on validation set. """
+    """Evaluate the model on validation set."""
+    
+    logger.info(f"Evaluating model: project={project}, name={name}")
     return model.val(data=data, project=project, name=name)
 
 
 def exportModel(model, export_format="onnx", project="models/yolo", name="export"):
-    """ Export the model to a given format. """
+    """Export the model to a given format."""
+
+    logger.info(f"Exporting model: format={export_format}, project={project}, name={name}")
 
     export_path = model.export(format=export_format, project=project, name=name)
-    print(f"Model exported to: {export_path}")
-    
+    logger.info(f"Model exported to: {export_path}")
+
     return Path(export_path)
 
 
@@ -131,18 +144,20 @@ def predictImage(model, imageUrl, show=True, project="outputs", name="plateDetec
     
     # Detect original file extension
     originalExt = Path(imageUrl).suffix.lower()
+    logger.info(f"Running prediction on image: {imageUrl} (ext={originalExt})")
     
     # Run inference
     results = model.predict(source=imageUrl, project=project, name=name, save=True)
 
     if show:
+        logger.debug("Showing prediction result window...")
         results[0].show()
     
     saveDir = Path(project) / name
-    print(f"Predictions saved to: {saveDir}")
+    logger.info(f"Predictions saved to: {saveDir}")
     
-    # Ensure crops or detections keep same extension
     if crop:
+        logger.info("Cropping detected plates...")
         cropPlates(results)
     
     # Rename the image to use the same extension as the original file
@@ -150,9 +165,9 @@ def predictImage(model, imageUrl, show=True, project="outputs", name="plateDetec
         newName = imgFile.with_suffix(originalExt)
         if newName != imgFile:
             shutil.move(str(imgFile), str(newName))
-            print(f"Renamed {imgFile.name} → {newName.name}")
+            logger.info(f"Renamed {imgFile.name} → {newName.name}")
 
-    print('type(results)', type(results))
+    logger.debug(f"type(results) = {type(results)}")
     return results
 
 
@@ -162,6 +177,7 @@ def cropPlates(results, saveDir="outputs/plateCrop"):
     """
     savePath = Path(saveDir)
     savePath.mkdir(parents=True, exist_ok=True)
+    logger.info(f"Saving cropped plates to: {savePath}")
 
     for i, r in enumerate(results):
         imgPath = Path(r.path)  # original image path with plate detections
@@ -169,6 +185,7 @@ def cropPlates(results, saveDir="outputs/plateCrop"):
         ext = imgPath.suffix
 
         boxes = r.boxes.xyxy.cpu().numpy().astype(int)  # [x1, y1, x2, y2]
+        logger.info(f"Found {len(boxes)} plates in image: {imgPath}")
         
         for j, box in enumerate(boxes):
             x1, y1, x2, y2 = box
@@ -177,4 +194,4 @@ def cropPlates(results, saveDir="outputs/plateCrop"):
             cropFileName = savePath / f"{imgPath.stem}{ext}"
             cropped.save(cropFileName)
             
-            print(f"Saved cropped plate: {cropFileName}")
+            logger.info(f"Saved cropped plate: {cropFileName}")

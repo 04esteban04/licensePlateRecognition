@@ -5,7 +5,9 @@ from ultralytics import YOLO
 import torch
 import yaml
 from PIL import Image
+import logging
 
+logger = logging.getLogger(__name__)
 
 # CONFIG
 MODEL_NAME = "yolo11n.pt"  # lightweight YOLOv11 model
@@ -21,7 +23,7 @@ def cleanDirectories(dirs=OUTPUT_DIRS):
     for d in dirs:
         path = Path(d)
         if path.exists():
-            print(f"🧹 Removing directory: {path}")
+            logger.info(f"Removing directory: {path}")
             shutil.rmtree(path)
 
 
@@ -32,16 +34,16 @@ def loadModel(modelName=MODEL_NAME, saveDir=MODEL_DIR):
     modelPath = Path(saveDir) / modelName
 
     if modelPath.exists():
-        print(f"📦 Loading local model: {modelPath}")
+        logger.info(f"Loading local model: {modelPath}")
         return YOLO(str(modelPath))
 
     else:
-        print(f"⬇️ Downloading model: {modelName}")
+        logger.info(f"⬇Downloading model: {modelName}")
         model = YOLO(modelName)
 
         if Path(modelName).exists():
             shutil.move(modelName, modelPath)
-            print(f"💾 Model saved to: {modelPath}")
+            logger.info(f"Model saved to: {modelPath}")
 
     return model
 
@@ -52,10 +54,10 @@ def prepareDataset(datasetDir=DATASET_DIR):
 
     yamlFiles = list(datasetPath.rglob("data.yaml"))
     if not yamlFiles:
-        raise FileNotFoundError(f"❌ data.yaml not found in {datasetPath}")
+        raise FileNotFoundError(f"data.yaml not found in {datasetPath}")
 
     dataYaml = yamlFiles[0]
-    print(f"📁 Using dataset: {dataYaml}")
+    logger.info(f"Using dataset: {dataYaml}")
 
     with open(dataYaml, "r") as f:
         data = yaml.safe_load(f)
@@ -68,14 +70,14 @@ def prepareDataset(datasetDir=DATASET_DIR):
     with open(dataYaml, "w") as f:
         yaml.dump(data, f, sort_keys=False)
 
-    print("✅ Dataset paths fixed.")
+    logger.info("Dataset paths fixed.")
     return str(dataYaml), data
 
 
 def trainModel(model, data, epochs=EPOCHS, imgsz=IMG_SIZE, project=MODEL_DIR, name="train", workers=2):
     """Train YOLO model."""
     device = "0" if torch.cuda.is_available() else "cpu"
-    print(f"🧠 Training on: {'GPU' if device != 'cpu' else 'CPU'}")
+    logger.info(f"Training on: {'GPU' if device != 'cpu' else 'CPU'}")
 
     results = model.train(
         data=data,
@@ -84,32 +86,32 @@ def trainModel(model, data, epochs=EPOCHS, imgsz=IMG_SIZE, project=MODEL_DIR, na
         device=device,
         project=str(project),
         name=name,
-        workers=2,
+        workers=workers,
         exist_ok=True
     )
-    print("✅ Training complete.")
+    logger.info("Training complete.")
     return results
 
 
 def evaluateModel(model, data, project=MODEL_DIR, name="validation"):
     """Evaluate YOLO model."""
-    print("📊 Evaluating model...")
+    logger.info("Evaluating model...")
     results = model.val(data=data, project=str(project), name=name)
-    print("✅ Validation complete.")
+    logger.info("Validation complete.")
     return results
 
 
 def exportModel(model, exportFormat="onnx", project=MODEL_DIR, name="export"):
     """Export YOLO model to given format (default ONNX)."""
-    print(f"📦 Exporting model to {exportFormat.upper()} format...")
+    logger.info(f"Exporting model to {exportFormat.upper()} format...")
     exportPath = model.export(format=exportFormat, project=str(project), name=name)
-    print(f"✅ Model exported to: {exportPath}")
+    logger.info(f"Model exported to: {exportPath}")
     return Path(exportPath)
 
 
 def predictImage(model, imagePath, project="./outputs/charInference", name="inference", show=True):
     """Run inference on a single image, save results, and print predicted labels."""
-    print(f"🔍 Predicting: {imagePath}")
+    logger.info(f"Predicting: {imagePath}")
     
     # Run inference
     results = model.predict(source=imagePath, project=project, name=name, save=True, verbose=False)
@@ -120,19 +122,19 @@ def predictImage(model, imagePath, project="./outputs/charInference", name="infe
     if show:
         result.show()
 
-    print(f"✅ Predictions saved to: {Path(project) / name}")
+    logger.info(f"Predictions saved to: {Path(project) / name}")
 
     # ---- PRINT LABELS ---- #
     if result.boxes is not None and len(result.boxes) > 0:
         classes = result.boxes.cls.cpu().numpy().astype(int)
         confidences = result.boxes.conf.cpu().numpy()
 
-        print("🔠 Predicted Characters:")
+        logger.info("Predicted Characters:")
         for cls_id, conf in zip(classes, confidences):
             label = model.names[cls_id]
-            print(f"  - {label} (confidence: {conf:.2f})\n")
+            logger.info(f"  - {label} (confidence: {conf:.2f})")
     else:
-        print("⚠️ No characters detected.")
+        logger.warning("No characters detected.")
 
     return results, label
 
@@ -144,20 +146,20 @@ def renameInferenceOutputs(baseDir, fileExt):
     inferenceDirs = sorted(projectPath.glob("inference*"), key=lambda d: d.stat().st_mtime)
 
     if not inferenceDirs:
-        print("⚠️ No inference folders found.")
+        logger.warning("No inference folders found.")
         return
 
-    print(f"✅ Target extension: {fileExt}")
+    logger.info(f"Target extension: {fileExt}")
 
     for infDir in inferenceDirs:
-        print(f"\n📁 Checking folder: {infDir}")
+        logger.debug(f"Checking folder: {infDir}")
 
         imageFiles = list(infDir.glob("*.*"))
         if not imageFiles:
-            print(f"⚠️ No images found in {infDir}")
+            logger.warning(f"No images found in {infDir}")
             continue
 
         for imgFile in imageFiles:
             newName = imgFile.with_suffix(fileExt)
             shutil.move(str(imgFile), str(newName))
-            print(f"✅ Renamed {imgFile.name} → {newName.name}")
+            logger.debug("Renamed %s -> %s", imgFile.name, newName.name)

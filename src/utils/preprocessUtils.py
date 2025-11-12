@@ -1,6 +1,9 @@
 import cv2
 import numpy as np
 from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def readImage(imagePath):
@@ -86,7 +89,7 @@ def preprocessPlate(imagePath):
     inputImg = readImage(imagePath)
 
     isRedPlate = detectRedColor(inputImg)
-    print(f"Red color detected: {isRedPlate[0]} (Red ratio: {isRedPlate[1]:.4f})")
+    logger.info(f"Red color detected: {isRedPlate[0]} (Red ratio: {isRedPlate[1]:.4f})")
 
     grayImg = toGrayscale(inputImg)
     grayImg = reduceNoise(grayImg)
