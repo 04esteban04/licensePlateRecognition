@@ -335,6 +335,7 @@ def generatePDF(data):
         )
 
         plate_number = data.get("predictedPlateNumber", "N/A")
+        precision = data.get("meanPrecision", "N/A")
         images = data.get("images", {})
         file_name = data.get("originalFilename", "Unknown")
         process_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -350,6 +351,7 @@ def generatePDF(data):
         elements.append(Paragraph(f"<b>Source File:</b> {file_name}", styles["Normal"]))
         elements.append(Spacer(1, 12))
         elements.append(Paragraph(f"<b>Predicted Plate Number:</b> {plate_number}", styles["Heading2"]))
+        elements.append(Paragraph(f"<b>Precision:</b> {precision} %", styles["Heading2"]))
         elements.append(Spacer(1, 20))
 
         # === Alerts box ===

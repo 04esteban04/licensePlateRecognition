@@ -32,16 +32,41 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	let currentView = "card"; 
 
+	function createTooltip(elementId, placement, titleText) {
+		const element = document.getElementById(elementId);
+		const tooltip = new bootstrap.Tooltip(element, {
+			title: titleText,
+			placement: placement,
+		});
+		element.addEventListener("mouseenter", () => {
+			tooltip.show();
+		});
+		element.addEventListener("mouseleave", () => {
+			tooltip.hide();
+		});
+	}
+
 	function toggleView() {
 		if (currentView === "card") {
 			resultCardContainer.classList.add("d-none");
 			resultTableContainer.classList.remove("d-none");
-			toggleViewBtn.textContent = "Toggle card view";
+			toggleViewBtn.innerHTML = `
+				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-card-text" viewBox="0 0 20 20">
+					<path d="M14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2z"/>
+					<path d="M3 5.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5M3 8a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9A.5.5 0 0 1 3 8m0 2.5a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5"/>
+				</svg>
+				Card view
+			`;
 			currentView = "table";
 		} else {
 			resultCardContainer.classList.remove("d-none");
 			resultTableContainer.classList.add("d-none");
-			toggleViewBtn.textContent = "Toggle table view";
+			toggleViewBtn.innerHTML = `
+				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-table" viewBox="0 0 20 20">
+					<path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm15 2h-4v3h4zm0 4h-4v3h4zm0 4h-4v3h3a1 1 0 0 0 1-1zm-5 3v-3H6v3zm-5 0v-3H1v2a1 1 0 0 0 1 1zm-4-4h4V8H1zm0-4h4V4H1zm5-3v3h4V4zm4 4H6v3h4z"/>
+				</svg>
+				Table view
+			`;
 			currentView = "card";
 		}
 	}
@@ -193,6 +218,12 @@ document.addEventListener("DOMContentLoaded", () => {
 							<div class="card about-card h-100 shadow-sm">
 								<div class="card-body text-center">
 									<h5 class="card-title mb-3">Predicted Plate: ${result.predictedPlateNumber}</h5>
+									<h6 class="card-title mb-3">Precision: ${result.meanPrecision} %
+										<svg id="card-precision" class="ps-1" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 20 20">
+											<path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+											<path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+										</svg>
+									</h6>
 									<hr>
 									<div class="d-flex flex-column align-items-center">
 										<h6 class="text-white mb-2">Detected Plate</h6>
@@ -261,7 +292,7 @@ document.addEventListener("DOMContentLoaded", () => {
 								</div>
 							</td>
 							<td>${result.predictedPlateNumber}</td>
-							<td>${result.meanPrecision}</td>
+							<td>${result.meanPrecision} %</td>
 							<td>${result.carData?.alerts}</td>
 						`;
 						resultTableBody.appendChild(row);
@@ -270,6 +301,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 						const button = formElement.querySelector(".submit-btn");
 						if (button) showSuccessCheck(button);
+
+						createTooltip('card-precision', 'right', 'Indicates the overall accuracy of the license plate recognition process, combining plate detection and character inference performance.');
 						
 					} else {
 						showMessage("No images returned from the server.", true);
@@ -360,6 +393,12 @@ document.addEventListener("DOMContentLoaded", () => {
 						<div class="card about-card h-100 shadow-sm">
 							<div class="card-body text-center">
 								<h5 class="card-title mb-3">Predicted Plate: ${result.predictedPlateNumber}</h5>
+								<h6 class="card-title mb-3">Precision: ${result.meanPrecision} %
+									<svg id="card-precision" class="ps-1" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 20 20">
+										<path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+										<path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+									</svg>
+								</h6>
 								<hr>
 								<div class="d-flex flex-column align-items-center">
 									<h6 class="text-white mb-2">Detected Plate</h6>
@@ -428,7 +467,7 @@ document.addEventListener("DOMContentLoaded", () => {
 								</div>
 							</td>
 							<td>${result.predictedPlateNumber}</td>
-							<td>${result.meanPrecision}</td>
+							<td>${result.meanPrecision} %</td>
 							<td>${result.carData?.alerts}</td>
 					`;
 					resultTableBody.appendChild(row);
@@ -436,6 +475,7 @@ document.addEventListener("DOMContentLoaded", () => {
 					resultCardContainer.classList.remove("d-none");
 
 					showSuccessCheck(processDefaultBtn);
+					createTooltip('card-precision', 'right', 'Indicates the overall accuracy of the license plate recognition process, combining plate detection and character inference performance.');
 
 				} else {
 					showMessage("No images returned from the server.", true);
@@ -475,5 +515,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	// Change loading spinner in buttons when submitting
 	loadingButtons();
+
+	createTooltip('precision-info', 'top', 'Indicates the overall accuracy of the license plate recognition process, combining plate detection and character inference performance.');
 
 });
