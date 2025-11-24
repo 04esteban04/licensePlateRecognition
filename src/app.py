@@ -1,4 +1,3 @@
-import io
 import json
 import os
 import shutil
@@ -8,7 +7,6 @@ from io import BytesIO
 from pathlib import Path
 import logging
 
-import pandas as pd
 from flask import (
     Flask,
     jsonify,

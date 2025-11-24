@@ -287,9 +287,9 @@
             <!-- ABOUT TAB -->
             <div class="tab-pane fade" id="about">
                 <div class="container mt-5 py-5 px-4 text-light text-center">
-                    <h1 class="mt-4 display-5">🌲 Tree Species Recognition System</h1>
+                    <h1 class="mt-4 display-5">License Plate Recognition System</h1>
                     <p class="lead mb-5">
-                        A neural network-based application for identifying tree species from aerial and ground-level images, supporting environmental monitoring and conservation efforts.
+                        A neural network-based application for identifying license plates and characters in vehicle images, supporting monitoring and alert generation.
                     </p>
 
                     <div class="row row-cols-1 row-cols-md-2 g-5 justify-content-center text-start">
@@ -299,12 +299,12 @@
                             <div class="card about-card">
                             <h3 class="mb-3">🔍 Key Features</h3>
                             <ul class="list-unstyled">
-                                <li>✅ Automated preprocessing (resize, normalize, pixelate)</li>
-                                <li>✅ Deep learning classifier based on ResNet18</li>
-                                <li>✅ Real-time UI and command-line interface</li>
-                                <li>✅ Bulk and individual image analysis</li>
-                                <li>✅ PDF report generation with model metrics</li>
-                                <li>✅ Optimized for ecological and forestry research</li>
+                                <li>✅ Custom trained YOLO model for license plate and character recognition</li>
+                                <li>✅ Export trained models to other formats for portability (ONNX, etc.) </li>
+                                <li>✅ Run predictions on user provided or default images </li>
+                                <li>✅ Automatic cropping and image saving of detected license plates </li>
+                                <li>✅ PDF report generation with recognition results</li>
+                                <li>✅ Modularized scripts for model training, validation, prediction and utilities </li>
                             </ul>
                             </div>
                         </div>
@@ -314,32 +314,45 @@
                             <div class="card about-card">
                             <h3 class="mb-3">📌 Use Cases</h3>
                             <ul class="list-unstyled">
-                                <li>🌿 Ecological monitoring</li>
-                                <li>🌲 Forestry management</li>
-                                <li>🧬 Biodiversity research</li>
-                                <li>🌎 Environmental impact analysis</li>
+                                <li>1️⃣ Law enforcement and traffic monitoring</li>
+                                <li>2️⃣ Incident detection</li>
+                                <li>3️⃣ Alert generation</li>
+                                <li>4️⃣ Automated vehicle access control</li>
                             </ul>
                             </div>
                         </div>
-
+                        
                         <!-- How to Use -->
                         <div class="col">
                             <div class="card about-card">
                                 <h3 class="mb-3">🧭 How to use it</h3>
-                                <ol>
-                                    <li> Navigate to the analysis page</li>
-                                    <li> Select the desired mode (individual, bulk, or default)</li>
-                                    <li> Upload your images or use the default set</li>
-                                    <li> View results in card/table format</li>
-                                    <li> Download a PDF report if desired</li>
-                                </ol>
-
-                                <!-- Note -->
-                                <div class="alert alert-info mt-2 text-start shadow-lg rounded-4">
-                                    <strong>Note:</strong> For individual or bulk processing, the uploaded files must follow the format:
-                                    <code>&lt;name&gt;_&lt;treeSpecies&gt;.&lt;file_extension&gt;</code><br><br>
-                                    For example: <code>img9_oak.jpg</code>
-                                </div>
+                                <ul>
+                                    <li> Navigate to the analysis page
+                                        <br>
+                                        <span  class="d-flex justify-content-center align-items-center">
+                                            <img src="../static/images/UI - tabs.png" alt="Navbar tabs" class="img-fluid my-2 rounded-3 shadow-lg">
+                                        </span>
+                                    </li>
+                                    <li> Select the desired mode (individual or default)
+                                        <br>
+                                        <img src="../static/images/UI - modes.png" alt="Processing modes" class="img-fluid my-2 rounded-3 shadow-lg">
+                                    </li>
+                                    <li> Upload your image or use the default one provided</li>
+                                    <li> View the recognition results in card/table format
+                                        <br>
+                                        <span  class="d-flex justify-content-center align-items-center">
+                                            <img src="../static/images/UI - card view.png" alt="Results cards view" class="img-fluid my-2 rounded-3 shadow-lg w-75">
+                                        </span>
+                                        <br>
+                                        <img src="../static/images/UI - table view.png" alt="Results table view" class="img-fluid my-2 rounded-3 shadow-lg">
+                                    </li>
+                                    <li> Download a PDF report if desired
+                                        <br>
+                                        <span  class="d-flex justify-content-center align-items-center">
+                                            <img src="../static/images/UI - report.png" alt="Export PDF" class="img-fluid my-2 rounded-3 shadow-lg w-75">
+                                        </span>
+                                    </li>
+                                </ul>
                             </div>
                         </div>
 
@@ -347,22 +360,67 @@
                         <div class="col">
                             <div class="card about-card">
                                 <h3 class="mb-3">🚀 How to run the app locally</h3>
+
+                                <br>
+                                <h5> 1️⃣ Setting up the app</h5>
                                 <ul class="list">
                                     <li>
-                                        <p>Navigate to the <code>app</code> folder and run:</p>
-                                        <pre class="bg-secondary p-3 rounded-3"><code>python app.py</code></pre>
-                                        <p>This launches the backend, frontend, and handles classification and reporting.</p>
+                                        <p>Clone the project repository:</p>
+                                        <pre class="bg-secondary p-3 rounded-3"><code>git clone https://github.com/04esteban04/licensePlateRecognition.git</code></pre>
                                     </li>
                                     <li>
-                                        <p>Open <code>localhost:5000</code></p>
+                                        <p>Install the required dependencies:</p>
+                                        <pre class="bg-secondary p-3 rounded-3"><code>pip install -r requirements.txt</code></pre>
                                     </li>
+                                </ul>
+
+                                <br>
+                                <h5>2️⃣ Setting up the database</h5>
+                                <ul class="list">
+                                    <li>
+                                        <p>Make sure to have PostgreSQL server installed and running</p>
+                                    </li>
+                                    <li>
+                                        <p>Create a new database for the application by using the database creation script provided under: <code>src\assets\dbCreation\setupDB.sql</code></p>
+                                    </li>
+                                    <li>
+                                        <p>Create a <code>.env</code> file under the <code>src</code> folder and update the database connection parameters there:</p>
+                                        <ul class="bg-secondary py-3 rounded-3">
+                                            <li> PGHOST=localhost</li>
+                                            <li> PGPORT=db_localPort </li>
+                                            <li> PGDATABASE=db_name </li>
+                                            <li> PGUSER=db_user </li>
+                                            <li> PGPASSWORD=db_password</li>
+                                        </ul>
+                                    </li>
+                                    <li>
+                                        The database will be ready to use when the application is run
+                                    </li>
+                                </ul>
+
+                                <br>
+                                <h5>3️⃣ Running the application</h5>
+                                <ul class="list">
+                                    <li>
+                                        <p>Open a new terminal and navigate to the <code>src</code> folder and run:</p>
+                                        <pre class="bg-secondary p-3 rounded-3"><code>python app.py</code></pre>
+                                    </li>
+
+                                    <div class="alert alert-info mt-2 text-start shadow-lg rounded-4">
+                                        <strong>Note:</strong> The above command launches the backend, frontend and handles classification and reporting.
+                                    </div>
+
+                                    <li>
+                                        <p>Open <code>localhost:5000</code> and the app will be ready to use</p>
+                                    </li>
+                                </ul>
                             </div>
                         </div>
                         
                         <!-- Technologies Table -->
                         <div class="col w-100">
                             <div class="card about-card">
-                                <h3 class="mb-4 text-center">🧪 Technologies Used</h3>
+                                <h3 class="mb-4 text-center">💻 Technologies Used</h3>
                                 <div class="table-responsive text-center">
                                     <table class="table table-dark table-striped table-borderless table-hover mb-0">
                                         <thead>
@@ -374,23 +432,23 @@
                                         <tbody>
                                             <tr class="table-group-divider">
                                                 <td><strong>Frontend</strong></td>
-                                                <td>Flask, HTML/CSS, JS</td>
+                                                <td>Flask, HTML, CSS, JS</td>
                                             </tr>
                                             <tr>
                                                 <td><strong>Image Processing</strong></td>
-                                                <td>OpenCV, NumPy</td>
+                                                <td>OpenCV, NumPy, PIL</td>
                                             </tr>
                                             <tr>
                                                 <td><strong>Model Training</strong></td>
-                                                <td>PyTorch, torchvision</td>
+                                                <td>YOLO, Pytorch</td>
                                             </tr>
                                             <tr>
                                                 <td><strong>Reporting</strong></td>
-                                                <td>ReportLab, Pandas</td>
+                                                <td>ReportLab</td>
                                             </tr>
                                             <tr>
                                                 <td><strong>Evaluation</strong></td>
-                                                <td>scikit-learn, Matplotlib</td>
+                                                <td>Matplotlib</td>
                                             </tr>
                                         </tbody>
                                     </table>

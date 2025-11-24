@@ -1,0 +1,12 @@
+ultralytics
+torch
+opencv-python
+numpy
+Pillow
+PyYAML
+kagglehub
+Flask
+Werkzeug
+reportlab
+python-dotenv
+psycopg
