@@ -1,0 +1,6 @@
+__pycache__
+src/outputs
+src/dataset
+src/uploads
+*.log
+.env
