@@ -121,6 +121,8 @@ It is recommended to use the UI for user interaction and the Makefile for comman
 
 The following sections describe how to setup the YOLO models and datasets for license plates detection and character recognition, train them, validate the results, export the models and generate some predictions.
 
+<br>
+
 ## Using the UI
 
 ### Set up the app locally
@@ -133,15 +135,11 @@ If you prefer to use the UI, then you will have to setup the app locally. To do 
   git clone https://github.com/04esteban04/licensePlateRecognition.git
   ```  
 
-<br>
-
 - **Install the required dependencies:**
 
   ```bash
   pip install -r requirements.txt
   ```
-
-<br>
 
 - **Setting up the database:**
 
@@ -161,8 +159,6 @@ If you prefer to use the UI, then you will have to setup the app locally. To do 
 
   - The database will automatically initialize when the application runs.
 
-<br>
-
 - **Running the application:**
 
   - Open a terminal, navigate to the `src` folder and run:
@@ -170,8 +166,6 @@ If you prefer to use the UI, then you will have to setup the app locally. To do 
     ```bash
     python app.py
     ```
-  
-  <br>
 
   - Open your browser and go to:
 
@@ -182,8 +176,7 @@ If you prefer to use the UI, then you will have to setup the app locally. To do 
   <br>
 
 > [!NOTE]
-> This command launches the backend, frontend, inference logic, and PDF reporting system.
-
+> This command launches the system backend, frontend, inference logic and PDF reporting.
 
 
 <br>
