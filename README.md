@@ -110,7 +110,7 @@ pip install -r requirements.txt
 <br>
 
 
-# How to use it 
+## How to use it 
 
 There are 2 options to use the app: 
 
@@ -335,7 +335,7 @@ make main
 <br>
 
 
-# Future work
+## Future work
 
 - Host the app and database for easy use and access
 - Increment the image quantity and quality used for dataset creation so that the YOLO models and the system itself works with different image lightning, capture angle, etc
