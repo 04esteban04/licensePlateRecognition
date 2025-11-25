@@ -1,8 +1,8 @@
 # License Plate Recognition with YOLO
 
-This project implements a **car license plate detection system** using [Ultralytics YOLO](https://github.com/ultralytics/ultralytics) for object detection and a CNN and OCR for character recognition. 
+This project implements a **car license plate detection system** using [Ultralytics YOLO](https://github.com/ultralytics/ultralytics) for object detection and character recognition. 
 
-It includes utilities to automatically prepare the dataset from Kaggle, train the model, validate it, run predictions, and crop the detected license plates from images.
+It includes utilities to automatically prepare the plate recognition dataset from KaggleHub, train the model, validate it, run predictions and crop the detected license plate from the input image.
 
 <br>
 
@@ -12,70 +12,228 @@ It includes utilities to automatically prepare the dataset from Kaggle, train th
 - [Project Structure](#project-structure)
 - [Requirements](#requirements)
 - [How to use it](#how-to-use-it)
-  - [Dataset preparation](#dataset-preparation)
-  - [Model training](#model-training)
-  - [Validate the trained Model](#validate-the-trained-model)
-  - [Model export](#model-export)
-  - [Prediction](#prediction)
-  - [Test all at once](#test-all-at-once)
+
+  - [Using the UI](#using-the-ui)
+    - [Set up the app locally](#set-up-the-app-locally)
+    - [Use the app](#use-the-app)
+
+  - [Using the Makefile](#using-the-makefile)
+    - [Dataset preparation](#dataset-preparation)
+    - [Model training](#model-training)
+    - [Model validation](#model-validation)
+    - [Model export](#model-export)
+    - [Prediction](#prediction)
+    - [Test the system](#test-the-system)
 
 <br>
 
 ## Key Features
 
-- Automatic download of the train license plate dataset in YOLO format from Kaggle.
-- Custom YOLO model training and validation.
-- Run predictions on local or remote images.
-- Export trained models to other formats (ONNX, TorchScript, etc.).
-- Automatic cropping and image saving of detected license plates.
-- Organized scripts for training, validation, prediction, and utilities.
+### Core Functionality
+- Detect license plates using a YOLOv11 model.
+- Preprocess and filter the plate region.
+- Segment characters using contour detection.
+- Infer characters using a custom trained YOLOv11 model.
+- Reconstruct the final plate string automatically.
+- Compute precision metrics across plate and characters.
+
+
+### Web Interface
+
+- Upload images or use a built-in default test image.
+
+- Allows the user to visualize:
+  - Plate detected
+  - Cropped plate
+  - Segmentation boxes
+  - Segmentation threshold plate
+  - Individual character crops
+  - Plate inference result
+
+- Export results as a PDF report.
+
+
+### Additional Utilities
+
+- Automatic dataset creation for character inference.
+- Folder cleanup utilities.
+- Modularized utility functions.
+- Makefile for training, testing, inference, and dataset setup.
 
 <br>
 
 ## Project Structure
 
+The following diagram describes how the coded is organized within the `src` folder:
+
 ```bash
 src/
-├── dataset/License-Plate-Data/   # Dataset downloaded from Kaggle (YOLO format)
-├── models/yolo/                  # Trained and exported YOLO models (weights, ONNX, etc.)
-├── outputs/                      # Prediction results and artifacts
-│   ├── predict/                  # Images with YOLO detections drawn
-│   └── crops/                    # Cropped license plates extracted from predictions
-├── yolo/
-│   ├── yolo_utils.py             # Core utilities for training, evaluation, prediction, and cropping
-│   └── test/                     # Testing utilities and experiments
-│       └── setup.py              # Model and training dataset set up 
-│       └── train.py              # YOLO model training
-│       └── evaluate.py           # Generate metrics from trained model
-│       └── export.py             # Export the trained model to .onnx format
-│       └── predict.py            # Inference script (runs YOLO on new images)
-│       └── test.py               # Example test script for model trainig, evaluation, exporting it and running predictions
+├── app.py                        # Flask application
+├── assets/                       # App assets
+├── models/                       # YOLO models for plates and characters
+│   └── yoloPlateDetection
+│   └── yoloCharInference
+├── utils/                        # Core utilities
+│   ├── plateDetectionUtils.py
+│   ├── charInferenceUtils.py
+│   ├── segmentationUtils.py
+│   ├── preprocessingUtils.py
+│   ├── datasetUtils.py
+│   └── userInterfaceUtils.py
+├── outputs/                      # All generated results from an inference
+│   ├── plateCrop/
+│   ├── segmentationResults/
+│   ├── charCrops/
+│   ├── charInference/
+│   ├── plateDetection/
+│   └── last_result.json
+├── uploads/                      # Uploaded image
+├── tests/                        # Tests for each util file
+├── UI/                           # Graphical user interface
+│   ├── templates/
+│   └── static/
+├── Makefile                      # Targets for individual testing
+├── requirements.txt              # App requirements
+└── README.md
 ```
 
 <br>
 
 ## Requirements
 
-- Python >= 3.10
-- [Ultralytics](https://docs.ultralytics.com) (`pip install ultralytics`)
-- KaggleHub (`pip install kagglehub`)
-- Torch (`pip install torch torchvision`)
-- Pillow (`pip install pillow`)
-- Make (Linux/macOS) or NMake/PowerShell (Windows)
+Use the `requirements.txt` file provided to install all the necessary dependencies by running:
+
+```bash
+pip install -r requirements.txt
+```
 
 <br>
 
 
 # How to use it 
 
-The following sections describe how to setup the base yolo model and dataset for license plates detection, train it, validate the results, export the model and generate some predictions with it. Also, a testing script which does all at once is described as well. 
+There are 2 options to use the app: 
 
-## Dataset preparation
+- By using the UI 
+- By using the Makefile provided. 
 
-The dataset is automatically downloaded from _Kaggle_ when running any script that calls `prepareDataset`. It could also be done by running the command:
+It is recommended to use the UI for user interaction and the Makefile for command-like usage. 
+
+The following sections describe how to setup the YOLO models and datasets for license plates detection and character recognition, train them, validate the results, export the models and generate some predictions.
+
+## Using the UI
+
+### Set up the app locally
+
+If you prefer to use the UI, then you will have to setup the app locally. To do so, follow these steps:
+
+- **Clone the project repository:**
+
+  ```bash
+  git clone https://github.com/04esteban04/licensePlateRecognition.git
+  ```  
+
+<br>
+
+- **Install the required dependencies:**
+
+  ```bash
+  pip install -r requirements.txt
+  ```
+
+<br>
+
+- **Setting up the database:**
+
+  - Ensure you have `PostgreSQL` installed and running.
+
+  - Create a new database using the SQL script located at `src/assets/dbCreation/setupDB.sql`
+
+  - Create a `.env` file inside the `src` directory and provide your database credentials:
+
+    ```bash
+    PGHOST=localhost
+    PGPORT=db_localPort
+    PGDATABASE=db_name
+    PGUSER=db_user
+    PGPASSWORD=db_password
+    ```
+
+  - The database will automatically initialize when the application runs.
+
+<br>
+
+- **Running the application:**
+
+  - Open a terminal, navigate to the `src` folder and run:
+
+    ```bash
+    python app.py
+    ```
+  
+  <br>
+
+  - Open your browser and go to:
+
+    ```bash
+    http://localhost:5000
+    ```
+
+  <br>
+
+> [!NOTE]
+> This command launches the backend, frontend, inference logic, and PDF reporting system.
+
+
+
+<br>
+<hr>
+<br>
+
+### Use the app
+Now that you have everything setup, these are the steps to use the app:
+
+- **Navigate to the analysis page**
+  
+  <p align="center">
+    <img src="./src/UI/static/images/UI%20-%20tabs.png"/>
+  </p>
+
+<br>
+
+- **Select the desired mode (individual or default)**
+
+  ![Processing modes](./src/UI/static/images/UI%20-%20modes.png)
+
+<br>
+
+- **Upload your image or use the default one provided**
+
+- **View the recognition results in card/table format**
+
+  ![Results cards view](./src/assets/readmeImages/UI-cardView.png)
+
+  ![Results table view](./src/UI/static/images/UI%20-%20table%20view.png)
+
+<br>
+
+- **Download a PDF report if desired**
+
+  ![Export PDF](./src/assets/readmeImages/UI-report.png)
+
+<br>
+
+
+## Using the Makefile
+
+The following sections describe how to use the app with the Makefile provided
+
+### Dataset preparation
+
+The dataset for license plate recognition is automatically downloaded from _Kaggle_ when running any script that calls the function `prepareDataset`. It could also be done by just running the command:
 
 ```bash
-make setup
+make setupPlateDetectionDataset
 ```
 
 <br>
@@ -85,12 +243,20 @@ make setup
 
 <br>
 
-## Model training
+Then, to setup the dataset for character recognition simply run:
+
+```bash
+make setupCharInferenceDataset
+```
+
+<br>
+
+### Model training
 
 Train the YOLO model for object detection on the _Kaggle_ dataset by running:
 
 ```bash
-make train
+make trainPlateDetectionModel
 ```
 
 > [!NOTE]  
@@ -101,33 +267,45 @@ make train
 
 <br>
 
-## Validate the trained model
 
-It could be done by running the command:
+Similarly, run the following command to train the YOLO model for character recognition
 
 ```bash
-make evaluate
+make trainCharInferenceModel
 ```
-
-> [!NOTE]  
-> Results will be stored in `models/yolo/validation/`.
 
 <br>
 
-## Model Export
+### Model validation
 
-Export the trained model to ONNX by running:
+It could be done by running one of the following commands depending on which model you choose:
 
 ```bash
-make export
+make evaluatePlateDetectionModel
+make evaluateCharInferenceModel
 ```
 
 > [!NOTE]  
-> It wil be stored at `models/yolo/train/weights/best.onnx`.
+> Results will be stored in `models/yoloPlateDetection/validation/` and `models/yoloCharInference/validation/` respectively.
 
 <br>
 
-## Prediction
+### Model export
+
+Export the trained model to ONNX format by running:
+
+```bash
+make exportPlateDetectionModel
+make exportCharInferenceModel
+
+```
+
+> [!NOTE]  
+> It wil be stored at `models/yoloPlateDetection/train/weights/best.onnx` and `models/yoloCharInference/train/weights/best.onnx` respectively.
+
+<br>
+
+### Prediction
 
 Run predictions on test images by running:
 
@@ -142,17 +320,25 @@ make predict
 
 <br>
 
-## Test all at once
+### Test the system
 
-To do all the actions describe above in just one command run:
+To do a prediction on a test image in just one command simply run:
 
 ```bash
-make test
+make main
 ```
 
 > [!NOTE]  
 > The results will be saved under:
-> - `outputs/predict/<filename>` (for every prediction result)
-> - `outputs/crops/<filename>` (for every result with the plate cropped)
+> - `outputs/charCrops/<filename>` (for every result with the plate cropped)
 
 <br>
+
+
+# Future work
+
+- Host the app and database for easy use and access
+- Increment the image quantity and quality used for dataset creation so that the YOLO models and the system itself works with different image lightning, capture angle, etc
+- Allow user feedback on inference results
+- Improve result data info on PDF report
+
